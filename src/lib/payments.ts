@@ -1,3 +1,4 @@
+import 'dotenv/config'; // Astro dev exposes .env to import.meta.env only; load it into process.env for server code
 // Stripe layer (server-only). Uses Stripe's REST API directly via fetch, so there is no SDK
 // dependency to install. With no STRIPE_SECRET_KEY set, everything runs in SANDBOX mode:
 // deposits are simulated, nothing leaves the machine, and the flow is otherwise identical.
