@@ -1,7 +1,7 @@
 import 'dotenv/config'; // Astro dev exposes .env to import.meta.env only; load it into process.env for server code
 // Server-only Firebase Admin (Firestore + Auth verification). Node runtime only.
-// Credentials: set FIREBASE_SERVICE_ACCOUNT_JSON (full JSON of a service-account key), or
-// rely on Application Default Credentials (gcloud auth application-default login).
+// Credentials, in order: GOOGLE_APPLICATION_CREDENTIALS (path to a key file, recommended),
+// FIREBASE_SERVICE_ACCOUNT_JSON (inline JSON), or Application Default Credentials.
 import { cert, getApps, initializeApp, applicationDefault, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
