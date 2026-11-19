@@ -4,7 +4,7 @@ export const prerender = true;
 
 /** robots.txt generated from the configured site URL, so the sitemap link always matches the domain. */
 export const GET: APIRoute = ({ site }) => {
-  const origin = (site ?? new URL('https://doddo.app')).toString().replace(/\/$/, '');
+  const origin = (site ?? new URL('https://doddo.co.uk')).toString().replace(/\/$/, '');
   const body = [
     'User-agent: *',
     'Allow: /',

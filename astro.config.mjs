@@ -9,7 +9,7 @@ import 'dotenv/config';
 // Hybrid-ready: pages are static unless they export `prerender = false`.
 // Public marketing pages are prerendered and listed in /sitemap-index.xml.
 export default defineConfig({
-  site: process.env.PUBLIC_SITE_URL || 'https://doddo.app',
+  site: process.env.PUBLIC_SITE_URL || "https://doddo.co.uk",
   output: 'server',
   adapter: node({ mode: 'standalone' }),
   integrations: [

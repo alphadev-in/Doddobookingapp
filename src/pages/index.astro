@@ -20,13 +20,13 @@ const faqs = [
   { q: 'Can several team members share one calendar?', a: 'Yes. Each team member has their own colour, hours and services, and the calendar shows everyone side by side.' },
   { q: 'Is my client data safe?', a: 'Client data is private to your business and stored securely. Team notes are visible only to your team.' },
 ];
-const siteUrl = 'https://doddo.app/';
+const siteUrl = 'https://doddo.co.uk/';
 const jsonLd = [
   { '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Doddo', applicationCategory: 'BusinessApplication', operatingSystem: 'Web', url: siteUrl,
     description: 'Online booking, a multi-staff calendar, client CRM and deposit protection for appointment businesses.',
     offers: [{ '@type': 'Offer', name: 'Solo', price: '15', priceCurrency: 'GBP' }, { '@type': 'Offer', name: 'Team', price: '35', priceCurrency: 'GBP' }] },
   { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
-  { '@context': 'https://schema.org', '@type': 'Organization', name: 'Doddo', url: siteUrl, logo: 'https://doddo.app/favicon.svg' },
+  { '@context': 'https://schema.org', '@type': 'Organization', name: 'Doddo', url: siteUrl, logo: 'https://doddo.co.uk/favicon.svg' },
 ];
 ---
 <BaseLayout title="Online booking, calendar & deposits for salons and studios" canonical="/" jsonLd={jsonLd}>

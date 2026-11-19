@@ -1,3 +1,11 @@
 {
-  "firestore": { "rules": "firestore.rules" }
+  "firestore": { "rules": "firestore.rules" },
+  "hosting": {
+    "public": "dist/client",
+    "cleanUrls": true,
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "**", "run": { "serviceId": "doddo", "region": "europe-west2" } }
+    ]
+  }
 }
