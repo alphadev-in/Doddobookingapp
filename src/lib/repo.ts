@@ -135,3 +135,9 @@ export async function recomputeClientStats(clientId: string) {
 }
 
 export { db as firestore, col };
+
+/** Appointments starting in [fromIso, toIso). Used by the reminder job. */
+export async function listAppointmentsStartingBetween(fromIso: string, toIso: string) {
+  const q = await col<Appointment>('appointments').where('startAt', '>=', fromIso).where('startAt', '<', toIso).get();
+  return q.docs.map((d) => snap<Appointment>(d));
+}

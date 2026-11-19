@@ -92,6 +92,7 @@ export interface Appointment {
   notes: string;
   source: 'online' | 'dashboard';
   manageToken: string;
+  reminderSentAt?: string | null; // set once the 24h reminder has gone out
   createdAt: string;
   updatedAt: string;
 }
