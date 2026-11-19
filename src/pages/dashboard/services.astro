@@ -1,0 +1,13 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import ServicesManager from '../../components/islands/ServicesManager';
+import { loadOwnerBusiness } from '../../lib/page-auth';
+export const prerender = false;
+
+const ctx = await loadOwnerBusiness(Astro);
+if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
+const { business } = ctx;
+---
+<DashboardLayout title="Services & pricing" active="services" businessName={business.name} bookingSlug={business.slug}>
+  <ServicesManager currency={business.currency} client:load />
+</DashboardLayout>

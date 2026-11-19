@@ -1,0 +1,7 @@
+---
+interface Props { rows?: number; }
+const { rows = 3 } = Astro.props;
+---
+<div class="space-y-3" aria-busy="true" aria-label="Loading">
+  {Array.from({ length: rows }).map(() => <div class="skeleton h-16 w-full" />)}
+</div>

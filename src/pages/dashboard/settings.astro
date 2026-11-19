@@ -1,0 +1,14 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import SettingsPanel from '../../components/islands/SettingsPanel';
+import { loadOwnerBusiness } from '../../lib/page-auth';
+import { paymentsMode } from '../../lib/payments';
+export const prerender = false;
+
+const ctx = await loadOwnerBusiness(Astro);
+if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
+const { business } = ctx;
+---
+<DashboardLayout title="Settings" active="settings" businessName={business.name} bookingSlug={business.slug}>
+  <SettingsPanel business={business} paymentsMode={paymentsMode()} origin={Astro.url.origin} client:load />
+</DashboardLayout>

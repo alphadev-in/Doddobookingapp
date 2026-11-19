@@ -1,0 +1,15 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import Calendar from '../../components/islands/Calendar';
+import { loadOwnerBusiness } from '../../lib/page-auth';
+import { dateKeyInTz } from '../../lib/time';
+export const prerender = false;
+
+const ctx = await loadOwnerBusiness(Astro);
+if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
+const { business } = ctx;
+const todayKey = dateKeyInTz(Date.now(), business.timezone);
+---
+<DashboardLayout title="Calendar" active="calendar" businessName={business.name} bookingSlug={business.slug}>
+  <Calendar timezone={business.timezone} currency={business.currency} todayKey={todayKey} client:load />
+</DashboardLayout>

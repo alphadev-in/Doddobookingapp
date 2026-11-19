@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import BookingFlow from '../../components/islands/BookingFlow';
+import { getBusinessBySlug, listServices, listStaff } from '../../lib/repo';
+import { dateKeyInTz } from '../../lib/time';
+export const prerender = false;
+
+const business = await getBusinessBySlug(Astro.params.slug!);
+if (!business) return new Response('Not found', { status: 404 });
+const services = (await listServices(business.id)).filter((s) => s.active);
+const staff = (await listStaff(business.id)).filter((s) => s.active);
+const todayKey = dateKeyInTz(Date.now(), business.timezone);
+const publicBusiness = {
+  slug: business.slug, name: business.name, timezone: business.timezone, currency: business.currency,
+  depositPolicy: business.depositPolicy, cancellationWindowHours: business.cancellationWindowHours,
+};
+const publicServices = services.map((s) => ({ id: s.id, name: s.name, category: s.category, durationMin: s.durationMin, priceCents: s.priceCents, depositType: s.depositType, depositValue: s.depositValue }));
+const publicStaff = staff.map((s) => ({ id: s.id, name: s.name, role: s.role, color: s.color, serviceIds: s.serviceIds }));
+---
+<BaseLayout title={`Book with ${business.name}`} description={`Book an appointment with ${business.name} online.`}>
+  <main class="min-h-dvh bg-slate-50 px-4 py-6">
+    <div class="mx-auto max-w-xl">
+      <header class="mb-6">
+        <p class="text-sm text-slate-500">Book online</p>
+        <h1 class="text-2xl font-bold">{business.name}</h1>
+        <p class="text-sm text-slate-500">Times shown in {business.timezone}</p>
+      </header>
+      <BookingFlow business={publicBusiness} services={publicServices} staff={publicStaff} todayKey={todayKey} client:load />
+    </div>
+  </main>
+</BaseLayout>

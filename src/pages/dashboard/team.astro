@@ -1,0 +1,13 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import TeamManager from '../../components/islands/TeamManager';
+import { loadOwnerBusiness } from '../../lib/page-auth';
+export const prerender = false;
+
+const ctx = await loadOwnerBusiness(Astro);
+if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
+const { business } = ctx;
+---
+<DashboardLayout title="Team" active="team" businessName={business.name} bookingSlug={business.slug}>
+  <TeamManager client:load />
+</DashboardLayout>

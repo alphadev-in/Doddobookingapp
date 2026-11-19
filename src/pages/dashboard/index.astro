@@ -1,0 +1,95 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import StatCard from '../../components/astro/StatCard.astro';
+import EmptyState from '../../components/astro/EmptyState.astro';
+import CopyLink from '../../components/islands/CopyLink';
+import { loadOwnerBusiness } from '../../lib/page-auth';
+import { listAppointments, listClients } from '../../lib/repo';
+import { dateKeyInTz, timeInTz, formatMoney, formatDateTime } from '../../lib/time';
+import { cancellationPolicy } from '../../lib/booking';
+export const prerender = false;
+
+const ctx = await loadOwnerBusiness(Astro);
+if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
+const { business } = ctx;
+const tz = business.timezone;
+const nowMs = Date.now();
+const todayKey = dateKeyInTz(nowMs, tz);
+const all = await listAppointments(business.id);
+const bookings = all.filter((a) => a.kind !== 'block');
+
+const today = bookings.filter((a) => dateKeyInTz(a.startAt, tz) === todayKey && a.status !== 'cancelled');
+const todayRevenue = today.reduce((n, a) => n + a.priceCents, 0);
+const thirtyDaysAgo = nowMs - 30 * 24 * 3600_000;
+const noShows = bookings.filter((a) => a.status === 'no_show' && Date.parse(a.startAt) >= thirtyDaysAgo).length;
+const upcoming = bookings
+  .filter((a) => a.status === 'confirmed' && Date.parse(a.startAt) > nowMs)
+  .sort((a, b) => a.startAt.localeCompare(b.startAt))
+  .slice(0, 8);
+const clientCount = (await listClients(business.id)).length;
+const bookingPath = `/book/${business.slug}`;
+---
+<DashboardLayout title="Overview" active="overview" businessName={business.name} bookingSlug={business.slug}>
+  <div class="space-y-8">
+    <section class="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Quick stats">
+      <StatCard label="Today's bookings" value={today.length} hint={`${clientCount} clients in CRM`} />
+      <StatCard label="Expected revenue" value={formatMoney(todayRevenue, business.currency)} hint="Today, excl. cancellations" />
+      <StatCard label="No-shows (30 days)" value={noShows} tone={noShows > 0 ? 'warn' : 'default'} />
+      <StatCard label="Open slots today" value={today.length ? 'See calendar' : 'Free day'} hint="Based on hours & bookings" />
+    </section>
+
+    <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200" aria-labelledby="share">
+      <h2 id="share" class="font-semibold">Share your booking link</h2>
+      <p class="mt-1 text-sm text-slate-500">Put this on Instagram, Google Business or your website.</p>
+      <div class="mt-3"><CopyLink path={bookingPath} client:load /></div>
+    </section>
+
+    <section class="grid gap-3 sm:grid-cols-2" aria-label="Quick actions">
+      <a href="/dashboard/calendar?new=1" class="min-h-14 flex items-center justify-center rounded-xl bg-brand-600 px-4 py-4 font-semibold text-white">+ New Appointment</a>
+      <a href="/dashboard/services?new=1" class="min-h-14 flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-4 font-semibold text-slate-800">+ Add Service</a>
+    </section>
+
+    <section aria-labelledby="today">
+      <h2 id="today" class="mb-3 text-lg font-semibold">Today</h2>
+      {today.length === 0 ? (
+        <EmptyState title="No appointments today" body="Share your booking link or add a walk-in." />
+      ) : (
+        <ul class="divide-y divide-slate-200 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+          {today.sort((a, b) => a.startAt.localeCompare(b.startAt)).map((a) => (
+            <li class="flex items-center justify-between gap-3 px-4 py-3">
+              <div class="min-w-0">
+                <p class="font-medium truncate">{a.clientName || 'Walk-in'}</p>
+                <p class="text-sm text-slate-500 truncate">{a.title}</p>
+              </div>
+              <div class="shrink-0 text-right text-sm">
+                <p class="font-semibold">{timeInTz(a.startAt, tz)}</p>
+                <p class="capitalize text-slate-500">{a.status.replace('_', ' ')}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+
+    <section aria-labelledby="upcoming">
+      <h2 id="upcoming" class="mb-3 text-lg font-semibold">Upcoming bookings</h2>
+      {upcoming.length === 0 ? (
+        <EmptyState title="Nothing upcoming" body="New online bookings will appear here instantly." />
+      ) : (
+        <ul class="grid gap-3 md:grid-cols-2">
+          {upcoming.map((a) => {
+            const policy = cancellationPolicy(business, a);
+            return (
+              <li class="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+                <p class="text-sm text-slate-500">{formatDateTime(a.startAt, tz)}</p>
+                <p class="mt-1 font-semibold">{a.clientName || 'Walk-in'}</p>
+                <p class="text-sm text-slate-600">{a.title}{a.depositCents > 0 ? ` · deposit ${formatMoney(a.depositCents, business.currency)}` : ''}</p>
+                {policy.late && <p class="mt-2 text-xs text-amber-700">Inside cancellation window</p>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  </div>
+</DashboardLayout>

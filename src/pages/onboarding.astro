@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Onboarding from '../components/islands/Onboarding';
+import { loadOwnerBusiness } from '../lib/page-auth';
+import { SESSION_COOKIE, verifySessionCookie } from '../lib/session';
+import { getBusinessByOwner } from '../lib/repo';
+export const prerender = false;
+
+// Signed-out users are redirected by middleware; a finished business goes straight to the dashboard.
+const uid = await verifySessionCookie(Astro.cookies.get(SESSION_COOKIE)?.value ?? null);
+if (uid && (await getBusinessByOwner(uid))) return Astro.redirect('/dashboard');
+const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London';
+---
+<BaseLayout title="Set up your business" noindex>
+  <main class="min-h-dvh bg-slate-50 px-4 py-8">
+    <div class="mx-auto mb-6 flex max-w-xl items-center justify-between">
+      <a href="/" class="text-xl font-bold text-brand-600">Doddo</a>
+      <span class="text-sm text-slate-500">About 5 minutes</span>
+    </div>
+    <Onboarding defaultTimezone="Europe/London" defaultCurrency="GBP" client:load />
+  </main>
+</BaseLayout>

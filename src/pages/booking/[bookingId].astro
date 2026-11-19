@@ -1,0 +1,37 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ManageBooking from '../../components/islands/ManageBooking';
+import { getAppointment, getBusinessById, getServices, listStaff } from '../../lib/repo';
+import { cancellationPolicy } from '../../lib/booking';
+import { dateKeyInTz } from '../../lib/time';
+export const prerender = false;
+
+// The manage link carries a per-booking token. Without the right token we return 404, not 403,
+// so booking ids cannot be probed.
+const token = Astro.url.searchParams.get('t') ?? '';
+const appt = await getAppointment(Astro.params.bookingId!);
+const business = appt ? await getBusinessById(appt.businessId) : null;
+const valid = !!appt && !!business && appt.kind === 'booking' && !!token && token === appt.manageToken;
+if (!valid || !appt || !business) return new Response('Booking not found', { status: 404, headers: { 'X-Robots-Tag': 'noindex' } });
+
+const services = await getServices(appt.serviceIds);
+const staff = appt.staffId ? (await listStaff(business.id)).find((s) => s.id === appt.staffId) : null;
+const policy = cancellationPolicy(business, appt);
+const view = {
+  id: appt.id, status: appt.status, startAt: appt.startAt, endAt: appt.endAt, paymentStatus: appt.paymentStatus,
+  depositCents: appt.depositCents, priceCents: appt.priceCents, currency: business.currency,
+  business: { name: business.name, slug: business.slug, timezone: business.timezone, email: business.email, phone: business.phone },
+  services: services.map((s) => s.name), staffName: staff?.name ?? 'Any available', clientName: appt.clientName,
+  policy: { ...policy, text: business.depositPolicy },
+};
+const todayKey = dateKeyInTz(Date.now(), business.timezone);
+---
+<BaseLayout title="Manage your booking" noindex>
+  <main class="min-h-dvh bg-slate-50 px-4 py-6">
+    <div class="mx-auto max-w-xl">
+      <a href={`/book/${business.slug}`} class="text-sm text-brand-700">← Back to {business.name}</a>
+      <h1 class="mt-3 mb-5 text-2xl font-bold">Your booking</h1>
+      <ManageBooking booking={view} token={token} serviceIds={appt.serviceIds} staffId={appt.staffId} todayKey={todayKey} client:load />
+    </div>
+  </main>
+</BaseLayout>
