@@ -1,18 +1,12 @@
 ---
-export const prerender = true;
 import BaseLayout from '../layouts/BaseLayout.astro';
+import AuthShell from '../components/astro/AuthShell.astro';
 import AuthForm from '../components/islands/AuthForm';
+export const prerender = true;
 ---
-<BaseLayout title="Create account">
-  <main class="min-h-dvh grid place-items-center px-4 py-10">
-    <div class="w-full max-w-sm">
-      <a href="/" class="block text-center text-2xl font-bold text-brand-600">Doddo</a>
-      <div class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <h1 class="text-xl font-semibold">Create your account</h1>
-        <p class="mt-1 text-sm text-slate-500">Free to start. Set up your business in about 5 minutes.</p>
-        <div class="mt-5"><AuthForm mode="signup" next="/onboarding" client:load /></div>
-        <p class="mt-6 text-center text-sm text-slate-600">Already have an account? <a class="font-medium text-brand-700 hover:underline" href="/login">Sign in</a></p>
-      </div>
-    </div>
-  </main>
+<BaseLayout title="Create your account" description="Create a Doddo account to take online bookings for your business, or to manage your own appointments." canonical="/signup">
+  <AuthShell title="Create your account" subtitle="Takes about five minutes. £5 a month, no contract.">
+    <AuthForm mode="signup" next="/onboarding" client:load />
+    <Fragment slot="footer">Already have an account? <a class="font-semibold text-brand-700 hover:underline" href="/login">Sign in</a></Fragment>
+  </AuthShell>
 </BaseLayout>

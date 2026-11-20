@@ -10,6 +10,6 @@ if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
 const { business, unread, isAdmin } = ctx;
 const todayKey = dateKeyInTz(Date.now(), business.timezone);
 ---
-<DashboardLayout title="Calendar" active="calendar" businessName={business.name} bookingSlug={business.slug} unread={unread} isAdmin={isAdmin}>
+<DashboardLayout title="Calendar" active="calendar" businessName={business.name} bookingSlug={business.slug} unread={unread} isAdmin={isAdmin} wide>
   <Calendar timezone={business.timezone} currency={business.currency} todayKey={todayKey} client:load />
 </DashboardLayout>

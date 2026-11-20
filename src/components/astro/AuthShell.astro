@@ -1,0 +1,33 @@
+---
+// Two-panel auth layout: brand panel on desktop, compact header on phones.
+interface Props { title: string; subtitle: string; }
+const { title, subtitle } = Astro.props;
+---
+<main id="main" class="grid min-h-dvh bg-slate-50 lg:grid-cols-2">
+  <aside class="relative hidden overflow-hidden bg-gradient-to-br from-brand-600 via-blue-700 to-blue-900 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+    <div aria-hidden="true" class="anim-blob absolute -top-32 -left-24 h-96 w-96 rounded-full bg-white/10 blur-3xl"></div>
+    <div aria-hidden="true" class="anim-blob absolute bottom-0 right-0 h-96 w-96 rounded-full bg-sky-300/20 blur-3xl" style="animation-delay:-6s"></div>
+    <a href="/" class="font-logo relative text-2xl font-bold tracking-tight">Doddo</a>
+    <div class="relative max-w-md">
+      <h2 class="text-3xl font-bold leading-tight">Bookings, calendar and clients, in one place.</h2>
+      <ul class="mt-6 space-y-3 text-blue-100">
+        <li class="flex gap-3"><span aria-hidden="true">✓</span> Online booking page for your clients</li>
+        <li class="flex gap-3"><span aria-hidden="true">✓</span> Team calendar with unlimited members</li>
+        <li class="flex gap-3"><span aria-hidden="true">✓</span> Deposits and reminders, if you want them</li>
+      </ul>
+    </div>
+    <p class="relative text-sm text-blue-200">£5 a month · no contract · cancel any time</p>
+  </aside>
+
+  <section class="flex items-center justify-center px-4 py-10 sm:px-8">
+    <div class="anim-fade-up w-full max-w-md">
+      <a href="/" class="font-logo mb-8 block text-center text-2xl font-bold tracking-tight text-brand-600 lg:hidden">Doddo</a>
+      <div class="rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-200 sm:p-8">
+        <h1 class="text-2xl font-bold tracking-tight">{title}</h1>
+        <p class="mt-1 text-sm text-slate-600">{subtitle}</p>
+        <div class="mt-6"><slot /></div>
+      </div>
+      <div class="mt-6 text-center text-sm text-slate-600"><slot name="footer" /></div>
+    </div>
+  </section>
+</main>

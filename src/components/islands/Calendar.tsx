@@ -39,6 +39,8 @@ const hhmmOf = (iso: string, tz: string) => timeInTz(iso, tz);
 export default function Calendar({ timezone, currency, todayKey }: Props) {
   const [view, setView] = useState<'day' | 'week'>('week');
   const [date, setDate] = useState(todayKey);
+  const [dir, setDir] = useState<'next' | 'prev'>('next');
+  const go = (next: string, d: 'next' | 'prev') => { setDir(d); setDate(next); };
   const [staffId, setStaffId] = useState<string>('');
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -110,11 +112,11 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
           ))}
         </div>
         <div className="flex items-center gap-1">
-          <button type="button" aria-label="Previous" className="h-11 w-11 rounded-lg border border-slate-300 bg-white" onClick={() => setDate(addDaysToDateKey(date, view === 'day' ? -1 : -7))}>‹</button>
-          <button type="button" className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium" onClick={() => setDate(todayKey)}>Today</button>
-          <button type="button" aria-label="Next" className="h-11 w-11 rounded-lg border border-slate-300 bg-white" onClick={() => setDate(addDaysToDateKey(date, view === 'day' ? 1 : 7))}>›</button>
+          <button type="button" aria-label="Previous" className="h-11 w-11 rounded-lg border border-slate-300 bg-white" onClick={() => go(addDaysToDateKey(date, view === 'day' ? -1 : -7), 'prev')}>‹</button>
+          <button type="button" className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium" onClick={() => go(todayKey, todayKey < date ? 'prev' : 'next')}>Today</button>
+          <button type="button" aria-label="Next" className="h-11 w-11 rounded-lg border border-slate-300 bg-white" onClick={() => go(addDaysToDateKey(date, view === 'day' ? 1 : 7), 'next')}>›</button>
         </div>
-        <input type="date" aria-label="Jump to date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)}
+        <input type="date" aria-label="Jump to date" value={date} onChange={(e) => e.target.value && go(e.target.value, e.target.value < date ? 'prev' : 'next')}
           className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm" />
         {view === 'week' && (
           <select aria-label="Team member" value={staffId} onChange={(e) => setStaffId(e.target.value)} className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm">
@@ -133,7 +135,7 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
       {activeStaff.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">Add a team member to see their calendar.</div>
       ) : (
-        <div className="relative overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200 snap-x snap-mandatory">
+        <div key={date + view} className={`relative overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200 snap-x snap-mandatory ${dir === 'next' ? 'slide-next' : 'slide-prev'}`}>
           <div className="flex" style={{ minWidth: 56 + columns.length * colW }}>
             {/* Time rail */}
             <div className="sticky left-0 z-20 w-14 shrink-0 bg-white border-r border-slate-200" style={{ height: totalH + 40 }}>

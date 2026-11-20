@@ -1,17 +1,13 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import AuthShell from '../components/astro/AuthShell.astro';
 import AuthForm from '../components/islands/AuthForm';
+export const prerender = false;
 const next = Astro.url.searchParams.get('next') ?? '/dashboard';
 ---
-<BaseLayout title="Sign in">
-  <main class="min-h-dvh grid place-items-center px-4 py-10">
-    <div class="w-full max-w-sm">
-      <a href="/" class="block text-center text-2xl font-bold text-brand-600">Doddo</a>
-      <div class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <h1 class="text-xl font-semibold">Sign in to your account</h1>
-        <div class="mt-5"><AuthForm mode="login" next={next} client:load /></div>
-        <p class="mt-6 text-center text-sm text-slate-600">New to Doddo? <a class="font-medium text-brand-700 hover:underline" href="/signup">Create an account</a></p>
-      </div>
-    </div>
-  </main>
+<BaseLayout title="Sign in" noindex>
+  <AuthShell title="Welcome back" subtitle="Sign in to manage your business or see your bookings.">
+    <AuthForm mode="login" next={next} client:load />
+    <Fragment slot="footer">New to Doddo? <a class="font-semibold text-brand-700 hover:underline" href="/signup">Create an account</a></Fragment>
+  </AuthShell>
 </BaseLayout>
