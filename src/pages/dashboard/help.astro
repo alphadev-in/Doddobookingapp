@@ -1,0 +1,73 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { loadOwnerBusiness } from '../../lib/page-auth';
+export const prerender = false;
+
+const ctx = await loadOwnerBusiness(Astro);
+if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
+const { business, unread, isAdmin } = ctx;
+
+const sections = [
+  { title: 'Getting started', items: [
+    ['How do I take my first booking?', 'Share your booking link (Dashboard → Copy booking link). Clients pick a service, a team member and a time, then confirm. The booking appears on your calendar straight away.'],
+    ['Where is my booking link?', 'On the dashboard home, and in the top bar as "Booking page". It is fixed once created, so keep it on your Instagram, Google and website.'],
+    ['How do I install Doddo on my phone?', 'Open the site in Safari (iPhone) or Chrome (Android), then choose "Add to Home Screen" or "Install app". It opens full-screen like a native app.'],
+  ]},
+  { title: 'Calendar', items: [
+    ['How do I add a walk-in or phone booking?', 'Tap "+ New appointment" on the calendar, or tap an empty time slot. Choose Walk-in or Phone, the services and the client details.'],
+    ['How do I block time (lunch, training)?', 'Tap "+ Block time". Blocks stop clients booking that time. Tap a block to remove it.'],
+    ['How do I change a booking?', 'Tap the appointment, then use "Reschedule" to pick a new time, or "Cancel" to cancel it. Clients get a notification each time.'],
+    ['What do the colours mean?', 'Each team member has a colour bar. Green is completed, red is a no-show, and grey with a strikethrough is cancelled. Payment badges show deposit or pay-on-site status.'],
+    ['Can I see the whole week?', 'Yes. The calendar opens on Week view. Switch to Day view for team columns, and swipe sideways on a phone to see more team members.'],
+  ]},
+  { title: 'Services & team', items: [
+    ['How do I add a service?', 'Go to Services → "+ Add service". Set the name, category, minutes, buffer (prep or clean-up time), price and an optional deposit.'],
+    ['How do I import many services?', 'Services → "Export CSV" downloads your list. Edit it in Excel or Google Sheets, then "Import CSV" to add or update services. Matching name and category updates a row.'],
+    ['How do I rename a category?', 'On the Services page, tap "Rename category" next to the category heading. All services in it move to the new name.'],
+    ['How do I add a team member?', 'Go to Team → "+ Add team member". Pick a colour, the services they offer and their working hours. Turn a member off to hide them from online booking.'],
+  ]},
+  { title: 'Clients', items: [
+    ['Are clients added automatically?', 'Yes. A new client is created on their first booking. Visits, spend and no-shows update as you complete or mark appointments.'],
+    ['Are my client notes private?', 'Yes. Notes are only visible to your signed-in team. Clients never see them.'],
+  ]},
+  { title: 'Deposits & payments', items: [
+    ['How do deposits work?', 'Set a deposit per service as a percentage or a fixed amount. Clients pay it when they book. Late cancellations and no-shows can keep the deposit, depending on your settings.'],
+    ['Can I turn payments off?', 'Yes. Settings → Booking → "Take payment at booking". When it is off, clients book without a payment step and you collect payment in person.'],
+    ['What is the cancellation window?', 'The number of hours before an appointment after which a cancellation counts as late. Set it under Settings → Hours & policy.'],
+  ]},
+  { title: 'Notifications & reminders', items: [
+    ['Where do notifications appear?', 'The bell in the top bar and the Notifications item in the sidebar. Tap one to mark it read and go straight to the booking.'],
+    ['Do clients get reminders?', 'Yes, when you enable them under Settings → Notifications: confirmations, 24-hour reminders and cancellation notices by email and SMS.'],
+  ]},
+  { title: 'Account & billing', items: [
+    ['How much does Doddo cost?', '£5 a month with no contract. You can cancel any time. See the pricing page for details.'],
+    ['I want a customer account too', 'Use a different email to sign up as a customer. Customers see every booking they have made in one place.'],
+    ['How do I get help?', 'Email hello@doddo.co.uk. We reply within one working day.'],
+  ]},
+];
+---
+<DashboardLayout title="Help & FAQ" active="help" businessName={business.name} bookingSlug={business.slug} unread={unread} isAdmin={isAdmin}>
+  <div class="space-y-10">
+    <section class="rounded-3xl bg-gradient-to-br from-brand-600 to-violet-700 p-6 text-white shadow-xl shadow-brand-600/20 md:p-8">
+      <h2 class="text-2xl font-bold">How can we help?</h2>
+      <p class="mt-2 max-w-2xl text-indigo-100">Quick answers to the things you'll do most in Doddo. Tap a question to open it.</p>
+    </section>
+
+    {sections.map((sec) => (
+      <section aria-labelledby={`h-${sec.title.replace(/\W+/g, '-').toLowerCase()}`}>
+        <h3 id={`h-${sec.title.replace(/\W+/g, '-').toLowerCase()}`} class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">{sec.title}</h3>
+        <div class="divide-y divide-slate-200 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+          {sec.items.map(([q, a]) => (
+            <details class="group px-5 py-1">
+              <summary class="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 font-semibold text-slate-900">
+                {q}
+                <span aria-hidden="true" class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg leading-none text-brand-700 transition group-open:rotate-45">+</span>
+              </summary>
+              <p class="pb-5 pr-8 leading-relaxed text-slate-600">{a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+    ))}
+  </div>
+</DashboardLayout>

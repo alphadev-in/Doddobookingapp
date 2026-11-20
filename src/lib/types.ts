@@ -25,6 +25,30 @@ export interface Business {
     cancellation: boolean;
   };
   templates: { confirmation: string; reminder24h: string; cancellation: string };
+  paymentsEnabled: boolean; // false = no deposit/payment step in the public booking flow
+  slotIntervalMin: 5 | 10 | 15 | 20 | 30 | 60; // grid for offered start times
+  subscription: { plan: 'trial' | 'standard'; status: 'trialing' | 'active' | 'paused' | 'cancelled'; trialEndsAt: string | null };
+  createdAt: string;
+}
+
+export type UserRole = 'business' | 'customer';
+
+export interface AppUser {
+  uid: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  businessId?: string; // set for business recipients
+  customerEmail?: string; // set for customer recipients (lowercase)
+  title: string;
+  body: string;
+  href: string;
+  read: boolean;
   createdAt: string;
 }
 

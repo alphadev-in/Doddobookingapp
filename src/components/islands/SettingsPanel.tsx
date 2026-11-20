@@ -4,7 +4,7 @@ import { api } from './api';
 import { defaultHours } from '../../lib/defaults';
 import type { Business, WeekHours } from '../../lib/types';
 
-const TABS = ['Profile', 'Hours & policy', 'Payments', 'Notifications'] as const;
+const TABS = ['Profile', 'Hours & policy', 'Booking', 'Payments', 'Notifications'] as const;
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 interface Props { business: Business; paymentsMode: 'live' | 'sandbox'; origin: string; }
@@ -47,6 +47,9 @@ export default function SettingsPanel({ business, paymentsMode, origin }: Props)
         )}
         {tab === 'Hours & policy' && (
           <HoursTab b={b} input={input} busy={busy} onSave={save} />
+        )}
+        {tab === 'Booking' && (
+          <BookingTab b={b} busy={busy} onSave={save} />
         )}
         {tab === 'Payments' && (
           <section className="space-y-4">
@@ -155,6 +158,42 @@ function NotificationsTab({ b, input, busy, onSave }: { b: Business; input: stri
       ))}
       <p className="text-xs text-slate-500">Placeholders: {'{{name}}'}, {'{{service}}'}, {'{{business}}'}, {'{{time}}'}</p>
       <button disabled={busy} className="min-h-11 rounded-lg bg-brand-600 px-5 font-semibold text-white disabled:opacity-60">Save notifications</button>
+    </form>
+  );
+}
+
+function BookingTab({ b, busy, onSave }: { b: Business; busy: boolean; onSave: (p: Partial<Business>) => void }) {
+  const [paymentsEnabled, setPaymentsEnabled] = useState(b.paymentsEnabled ?? true);
+  const [slotIntervalMin, setSlotIntervalMin] = useState<number>(b.slotIntervalMin ?? 15);
+  return (
+    <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onSave({ paymentsEnabled, slotIntervalMin } as any); }}>
+      <h2 className="text-lg font-semibold">Online booking</h2>
+
+      <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold">Start times</legend>
+        <p className="text-sm text-slate-600">How often clients can pick a start time. Shorter steps give clients more choice.</p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6" role="radiogroup" aria-label="Time slot length">
+          {[5, 10, 15, 20, 30, 60].map((m) => (
+            <button key={m} type="button" role="radio" aria-checked={slotIntervalMin === m} onClick={() => setSlotIntervalMin(m)}
+              className={`min-h-11 rounded-lg border text-sm font-semibold ${slotIntervalMin === m ? 'border-brand-600 bg-brand-50 text-brand-700 ring-2 ring-brand-500/20' : 'border-slate-300 hover:bg-slate-50'}`}>
+              {m} min
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold">Deposits & payment page</legend>
+        <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4">
+          <span>
+            <span className="block text-sm font-medium">Take payment at booking</span>
+            <span className="block text-sm text-slate-600">{paymentsEnabled ? 'Clients see the payment step when a service needs a deposit.' : 'No payment step. Clients book without paying, and you collect payment in person.'}</span>
+          </span>
+          <input type="checkbox" role="switch" className="h-6 w-11 shrink-0" checked={paymentsEnabled} onChange={(e) => setPaymentsEnabled(e.target.checked)} aria-label="Take payment at booking" />
+        </label>
+      </fieldset>
+
+      <button disabled={busy} className="min-h-11 rounded-lg bg-brand-600 px-5 font-semibold text-white disabled:opacity-60">Save booking settings</button>
     </form>
   );
 }

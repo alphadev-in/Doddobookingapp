@@ -5,3 +5,9 @@ export function defaultHours(): WeekHours {
   const d = (open: boolean, start = '09:00', end = '18:00') => ({ open, start, end });
   return { '0': d(false), '1': d(true), '2': d(true), '3': d(true), '4': d(true), '5': d(true), '6': d(true, '10:00', '16:00') };
 }
+
+export const DEFAULT_BUSINESS_SETTINGS = {
+  paymentsEnabled: true,
+  slotIntervalMin: 15 as const,
+  subscription: { plan: 'trial' as const, status: 'trialing' as const, trialEndsAt: null as string | null },
+};

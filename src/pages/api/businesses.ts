@@ -5,7 +5,7 @@ import { json, readJson, withErrors } from '../../lib/http';
 import { ownerContext } from '../../lib/session';
 import { validateBusinessSettings, validateSlug } from '../../lib/validate';
 import { uid } from '../../lib/ids';
-import { defaultHours } from '../../lib/defaults';
+import { defaultHours, DEFAULT_BUSINESS_SETTINGS } from '../../lib/defaults';
 
 export const prerender = false;
 
@@ -21,7 +21,7 @@ export const POST: APIRoute = withErrors(async ({ request }) => {
     hours: body.hours ?? defaultHours(),
   });
   const business = await saveBusiness({
-    ...defaultBusinessFields(), ...base, id: `biz_${uid()}`, slug, ownerUid, stripeAccountId: null, createdAt: new Date().toISOString(),
+    ...defaultBusinessFields(), ...DEFAULT_BUSINESS_SETTINGS, ...base, id: `biz_${uid()}`, slug, ownerUid, stripeAccountId: null, createdAt: new Date().toISOString(),
   } as any);
   return json(business, 201);
 });

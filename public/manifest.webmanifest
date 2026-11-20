@@ -1,0 +1,19 @@
+{
+  "name": "Doddo",
+  "short_name": "Doddo",
+  "description": "Online booking, calendar and deposits for appointment businesses.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Calendar", "url": "/dashboard/calendar", "icons": [{ "src": "/favicon.svg", "sizes": "any" }] },
+    { "name": "Notifications", "url": "/notifications", "icons": [{ "src": "/favicon.svg", "sizes": "any" }] }
+  ]
+}

@@ -1,0 +1,104 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LogoutButton from '../components/islands/LogoutButton';
+import { SESSION_COOKIE, verifySessionCookie } from '../lib/session';
+import { getUser, listAppointmentsForEmail, countUnread, getBusinessById } from '../lib/repo';
+import { adminAuth } from '../lib/firebase-admin';
+import { formatDateTime, formatMoney } from '../lib/time';
+export const prerender = false;
+
+// Customer area: every booking made with the customer's email, upcoming first.
+const uid = await verifySessionCookie(Astro.cookies.get(SESSION_COOKIE)?.value ?? null);
+if (!uid) return Astro.redirect('/login?next=/account');
+const user = await getUser(uid);
+if (user?.role !== 'customer') return Astro.redirect('/dashboard');
+const email = (user.email || (await adminAuth().getUser(uid)).email || '').toLowerCase();
+const appts = await listAppointmentsForEmail(email);
+const now = Date.now();
+const upcoming = appts.filter((a) => a.kind === 'booking' && a.status === 'confirmed' && Date.parse(a.startAt) > now);
+const past = appts.filter((a) => !upcoming.includes(a)).reverse();
+const unread = await countUnread({ customerEmail: email });
+const businesses = new Map<string, any>();
+for (const a of appts) if (!businesses.has(a.businessId)) businesses.set(a.businessId, await getBusinessById(a.businessId));
+const row = (a: (typeof appts)[number]) => {
+  const biz = businesses.get(a.businessId);
+  const tz = biz?.timezone ?? 'Europe/London';
+  return { a, biz, when: formatDateTime(a.startAt, tz), money: formatMoney(a.priceCents, biz?.currency ?? 'GBP') };
+};
+const up = upcoming.map(row);
+const pa = past.map(row);
+const statusLabel: Record<string, string> = { confirmed: 'Confirmed', completed: 'Completed', cancelled: 'Cancelled', no_show: 'Missed' };
+---
+<BaseLayout title="My bookings" noindex>
+  <main class="min-h-dvh bg-slate-50 pb-16">
+    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <div class="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+        <a href="/" class="text-xl font-extrabold tracking-tight text-brand-600">Doddo</a>
+        <div class="flex items-center gap-2">
+          <a href="/notifications" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`} class="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 16v-5a6 6 0 10-12 0v5l-2 2h16z" /><path d="M10 21a2 2 0 004 0" /></svg>
+            {unread > 0 && <span class="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-600 px-1 text-center text-[11px] font-bold leading-5 text-white">{unread}</span>}
+          </a>
+          <LogoutButton client:load />
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-2xl space-y-8 px-4 py-6">
+      <section class="anim-fade-up">
+        <p class="text-sm text-slate-500">Welcome back</p>
+        <h1 class="text-2xl font-bold">Your bookings</h1>
+        <p class="text-sm text-slate-500">{email}</p>
+      </section>
+
+      <section aria-labelledby="up">
+        <h2 id="up" class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Upcoming</h2>
+        {up.length === 0 ? (
+          <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">No upcoming bookings. Book a time with any Doddo business using their booking link.</div>
+        ) : (
+          <ul class="space-y-3">
+            {up.map(({ a, biz, when, money }) => (
+              <li class="anim-fade-up overflow-hidden rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-600">{biz?.name}</p>
+                    <p class="mt-1 font-semibold">{a.title}</p>
+                    <p class="text-sm text-slate-600">{when}</p>
+                  </div>
+                  <span class="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800">{statusLabel[a.status]}</span>
+                </div>
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-sm">
+                  <span class="text-slate-600">{money}{a.depositCents > 0 ? ' · deposit paid' : ''}</span>
+                  <a href={`/booking/${a.id}?t=${a.manageToken}`} class="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 font-semibold text-white hover:bg-brand-700">Manage</a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section aria-labelledby="past">
+        <h2 id="past" class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Past & cancelled</h2>
+        {pa.length === 0 ? <p class="text-sm text-slate-500">Nothing here yet.</p> : (
+          <ul class="divide-y divide-slate-200 overflow-hidden rounded-2xl bg-white ring-1 ring-slate-200">
+            {pa.map(({ a, biz, when, money }) => (
+              <li class="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div class="min-w-0">
+                  <p class="font-medium truncate">{biz?.name} · {a.title}</p>
+                  <p class="text-slate-500">{when}</p>
+                </div>
+                <span class="shrink-0 text-slate-500">{statusLabel[a.status] ?? a.status} · {money}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section class="rounded-2xl bg-white p-5 text-sm ring-1 ring-slate-200">
+        <p class="font-semibold">Own a business?</p>
+        <p class="mt-1 text-slate-600">Create a separate business account with a different email to take bookings.</p>
+        <a href="/signup" class="mt-3 inline-flex min-h-11 items-center font-semibold text-brand-700 hover:underline">Create a business account →</a>
+      </section>
+    </div>
+  </main>
+</BaseLayout>

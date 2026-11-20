@@ -32,3 +32,27 @@ export async function requireBusiness(request: Request): Promise<Business> {
   if (!business) throw new BookingError('NOT_FOUND', 'Finish onboarding first', 404);
   return business;
 }
+
+/** Admin is identified by email. Override with ADMIN_EMAIL in the environment if needed. */
+export const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'prajapatikaranc@gmail.com').toLowerCase();
+
+export async function sessionUser(request: Request): Promise<{ uid: string; email: string } | null> {
+  const cookie = getCookie(request, SESSION_COOKIE);
+  if (!cookie) return null;
+  try {
+    const decoded = await adminAuth().verifySessionCookie(cookie, true);
+    return { uid: decoded.uid, email: (decoded.email ?? '').toLowerCase() };
+  } catch {
+    return null;
+  }
+}
+
+export const isAdminEmail = (email: string) => email.toLowerCase() === ADMIN_EMAIL;
+
+/** Throws 403 unless the signed-in user is the admin. */
+export async function requireAdmin(request: Request) {
+  const u = await sessionUser(request);
+  if (!u) throw new BookingError('FORBIDDEN', 'Please sign in', 401);
+  if (!isAdminEmail(u.email)) throw new BookingError('FORBIDDEN', 'Admins only', 403);
+  return u;
+}

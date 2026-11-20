@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import NotificationList from '../components/islands/NotificationList';
+import { SESSION_COOKIE, verifySessionCookie, isAdminEmail } from '../lib/session';
+import { getBusinessByOwner, getUser, listNotifications } from '../lib/repo';
+import { adminAuth } from '../lib/firebase-admin';
+export const prerender = false;
+
+// Business owners see business notifications; customers see their own. Both use this page.
+const uid = await verifySessionCookie(Astro.cookies.get(SESSION_COOKIE)?.value ?? null);
+if (!uid) return Astro.redirect('/login?next=/notifications');
+const user = await getUser(uid);
+const business = user?.role === 'customer' ? null : await getBusinessByOwner(uid);
+const email = (user?.email ?? (await adminAuth().getUser(uid)).email ?? '').toLowerCase();
+const isCustomer = user?.role === 'customer' || !business;
+const rows = await listNotifications(isCustomer ? { customerEmail: email } : { businessId: business!.id });
+const unread = rows.filter((n) => !n.read).length;
+const initial = rows.map((n) => ({ id: n.id, title: n.title, body: n.body, href: n.href, read: n.read, createdAt: n.createdAt }));
+---
+{isCustomer ? (
+  <BaseLayout title="Notifications" noindex>
+    <main class="min-h-dvh bg-slate-50 px-4 py-6">
+      <div class="mx-auto max-w-xl">
+        <a href="/account" class="text-sm text-brand-700">← My bookings</a>
+        <h1 class="mt-3 mb-5 text-2xl font-bold">Notifications</h1>
+        <NotificationList initial={initial} client:load />
+      </div>
+    </main>
+  </BaseLayout>
+) : (
+  <DashboardLayout title="Notifications" active="overview" businessName={business!.name} bookingSlug={business!.slug} unread={unread} isAdmin={isAdminEmail(email)}>
+    <NotificationList initial={initial} client:load />
+  </DashboardLayout>
+)}

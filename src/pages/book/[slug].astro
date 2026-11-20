@@ -13,6 +13,7 @@ const todayKey = dateKeyInTz(Date.now(), business.timezone);
 const publicBusiness = {
   slug: business.slug, name: business.name, timezone: business.timezone, currency: business.currency,
   depositPolicy: business.depositPolicy, cancellationWindowHours: business.cancellationWindowHours,
+  paymentsEnabled: business.paymentsEnabled ?? true,
 };
 const publicServices = services.map((s) => ({ id: s.id, name: s.name, category: s.category, durationMin: s.durationMin, priceCents: s.priceCents, depositType: s.depositType, depositValue: s.depositValue }));
 const publicStaff = staff.map((s) => ({ id: s.id, name: s.name, role: s.role, color: s.color, serviceIds: s.serviceIds }));

@@ -4,72 +4,114 @@ import LogoutButton from '../components/islands/LogoutButton';
 
 interface Props {
   title: string;
-  active: 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'settings';
+  active: 'overview' | 'calendar' | 'services' | 'team' | 'clients' | 'settings' | 'help' | 'notifications';
   businessName: string;
   bookingSlug: string;
+  unread?: number;
+  isAdmin?: boolean;
 }
-const { title, active, businessName, bookingSlug } = Astro.props;
+const { title, active, businessName, bookingSlug, unread = 0, isAdmin = false } = Astro.props;
+
+// Icon paths (24x24 stroke icons).
+const ICON = {
+  home: 'M3 11l9-8 9 8v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z',
+  calendar: 'M4 5h16v15H4zM4 10h16M9 3v4M15 3v4',
+  services: 'M4 6h16M4 12h10M4 18h7',
+  team: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0',
+  clients: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21v-1a6 6 0 0112 0v1',
+  settings: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z',
+  help: 'M12 22a10 10 0 100-20 10 10 0 000 20zM9.1 9a3 3 0 115.8 1c0 2-3 3-3 3M12 17h.01',
+  bell: 'M18 16v-5a6 6 0 10-12 0v5l-2 2h16zM10 21a2 2 0 004 0',
+  shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+};
 
 const nav = [
-  { key: 'overview', href: '/dashboard', label: 'Home', icon: 'M3 12l9-9 9 9M5 10v10h14V10' },
-  { key: 'calendar', href: '/dashboard/calendar', label: 'Calendar', icon: 'M3 5h18v16H3zM3 10h18M8 3v4M16 3v4' },
-  { key: 'services', href: '/dashboard/services', label: 'Services', icon: 'M4 6h16M4 12h10M4 18h7' },
-  { key: 'team', href: '/dashboard/team', label: 'Team', icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0' },
-  { key: 'clients', href: '/dashboard/clients', label: 'Clients', icon: 'M16 11a4 4 0 10-8 0 4 4 0 008 0zM4 21a8 8 0 0116 0' },
+  { key: 'overview', href: '/dashboard', label: 'Home', icon: ICON.home },
+  { key: 'calendar', href: '/dashboard/calendar', label: 'Calendar', icon: ICON.calendar },
+  { key: 'services', href: '/dashboard/services', label: 'Services', icon: ICON.services },
+  { key: 'team', href: '/dashboard/team', label: 'Team', icon: ICON.team },
+  { key: 'clients', href: '/dashboard/clients', label: 'Clients', icon: ICON.clients },
+  { key: 'settings', href: '/dashboard/settings', label: 'Settings', icon: ICON.settings },
+  { key: 'help', href: '/dashboard/help', label: 'Help & FAQ', icon: ICON.help },
 ];
+const mobileNav = nav.filter((n) => ['overview', 'calendar', 'services', 'team', 'clients'].includes(n.key));
+const linkCls = (on: boolean) =>
+  ['group flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition', on ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/30' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'].join(' ');
 ---
 <BaseLayout title={title} noindex>
-  <div class="min-h-dvh md:flex">
+  <div class="min-h-dvh bg-slate-50 md:flex">
     <!-- Desktop sidebar -->
-    <aside class="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 bg-white border-r border-slate-200 p-4">
-      <a href="/dashboard" class="text-xl font-bold text-brand-600 px-2 py-3">Doddo</a>
-      <p class="px-2 text-sm text-slate-500 truncate">{businessName}</p>
+    <aside class="hidden md:fixed md:inset-y-0 md:flex md:w-64 md:flex-col border-r border-slate-200 bg-white p-4">
+      <a href="/dashboard" class="flex items-center gap-2 px-2 py-3">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-sm font-extrabold text-white">D</span>
+        <span class="text-lg font-extrabold tracking-tight">Doddo</span>
+      </a>
+      <p class="mt-1 truncate px-2 text-xs text-slate-500">{businessName}</p>
       <nav class="mt-6 flex flex-col gap-1" aria-label="Dashboard">
         {nav.map((n) => (
-          <a href={n.href} aria-current={active === n.key ? 'page' : undefined}
-            class:list={['flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium', active === n.key ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100']}>
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d={n.icon} /></svg>
+          <a href={n.href} aria-current={active === n.key ? 'page' : undefined} class={linkCls(active === n.key)}>
+            <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d={n.icon} /></svg>
             {n.label}
           </a>
         ))}
-        <a href="/dashboard/settings" aria-current={active === 'settings' ? 'page' : undefined}
-          class:list={['flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium', active === 'settings' ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100']}>
-          Settings
+        <a href="/notifications" class={linkCls(active === 'notifications')}>
+          <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d={ICON.bell} /></svg>
+          <span class="flex-1">Notifications</span>
+          {unread > 0 && <span class="rounded-full bg-rose-600 px-2 text-xs font-bold text-white">{unread}</span>}
         </a>
+        {isAdmin && (
+          <a href="/admin" class="mt-2 flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-rose-700 hover:bg-rose-50">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d={ICON.shield} /></svg>
+            Admin
+          </a>
+        )}
       </nav>
-      <div class="mt-auto"><LogoutButton client:load /></div>
+      <div class="mt-auto space-y-2">
+        <a href={`/book/${bookingSlug}`} target="_blank" rel="noopener" class="flex min-h-11 items-center justify-center rounded-xl border border-slate-300 text-sm font-semibold hover:bg-slate-50">View booking page ↗</a>
+        <LogoutButton client:load />
+      </div>
     </aside>
 
-    <div class="flex-1 md:ml-60 min-w-0">
-      <header class="sticky top-0 z-30 flex items-center justify-between gap-3 bg-white/90 backdrop-blur border-b border-slate-200 px-4 py-3">
+    <div class="min-w-0 flex-1 md:ml-64">
+      <header class="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-white/85 px-4 py-3 backdrop-blur-md">
         <div class="min-w-0">
-          <p class="md:hidden text-xs text-slate-500 truncate">{businessName}</p>
-          <h1 class="text-lg font-semibold truncate">{title}</h1>
+          <p class="truncate text-xs text-slate-500 md:hidden">{businessName}</p>
+          <h1 class="truncate text-lg font-bold">{title}</h1>
         </div>
         <div class="flex items-center gap-2">
-          <a href={`/book/${bookingSlug}`} target="_blank" rel="noopener" class="hidden sm:inline-flex items-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50">View booking page</a>
-          <a href="/dashboard/settings" class="md:hidden inline-flex h-11 w-11 items-center justify-center rounded-lg border border-slate-300" aria-label="Settings">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" /></svg>
+          <a href="/notifications" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`} class="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50 md:hidden">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d={ICON.bell} /></svg>
+            {unread > 0 && <span class="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-600 px-1 text-center text-[11px] font-bold leading-5 text-white">{unread}</span>}
           </a>
+          <a href={`/book/${bookingSlug}`} target="_blank" rel="noopener" class="hidden items-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold hover:bg-slate-50 sm:inline-flex">Booking page ↗</a>
         </div>
       </header>
-      <main id="main" class="anim-fade-up p-4 md:p-8 pb-28 md:pb-8 max-w-6xl mx-auto">
+      <main id="main" class="anim-fade-up mx-auto max-w-6xl p-4 pb-28 md:p-8 md:pb-10">
         <slot />
       </main>
     </div>
 
-    <!-- Mobile bottom navigation -->
-    <nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]" aria-label="Primary">
-      <ul class="grid grid-cols-5">
-        {nav.map((n) => (
+    <!-- Mobile bottom navigation: large touch targets, safe-area aware -->
+    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label="Primary">
+      <ul class="mx-auto grid max-w-md grid-cols-6">
+        {mobileNav.map((n) => (
           <li>
             <a href={n.href} aria-current={active === n.key ? 'page' : undefined}
-              class:list={['flex min-h-14 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium', active === n.key ? 'text-brand-600' : 'text-slate-500']}>
-              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d={n.icon} /></svg>
+              class:list={['flex min-h-16 flex-col items-center justify-center gap-1 text-[10px] font-semibold', active === n.key ? 'text-brand-600' : 'text-slate-500']}>
+              <span class:list={['flex h-8 w-14 items-center justify-center rounded-full transition', active === n.key ? 'bg-brand-50' : '']}>
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d={n.icon} /></svg>
+              </span>
               {n.label}
             </a>
           </li>
         ))}
+        <li>
+          <a href="/dashboard/help" aria-current={active === 'help' ? 'page' : undefined}
+            class:list={['flex min-h-16 flex-col items-center justify-center gap-1 text-[10px] font-semibold', active === 'help' ? 'text-brand-600' : 'text-slate-500']}>
+            <span class="flex h-8 w-14 items-center justify-center rounded-full"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d={ICON.help} /></svg></span>
+            Help
+          </a>
+        </li>
       </ul>
     </nav>
   </div>

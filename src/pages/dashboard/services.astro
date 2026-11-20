@@ -6,8 +6,8 @@ export const prerender = false;
 
 const ctx = await loadOwnerBusiness(Astro);
 if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
-const { business } = ctx;
+const { business, unread, isAdmin } = ctx;
 ---
-<DashboardLayout title="Services & pricing" active="services" businessName={business.name} bookingSlug={business.slug}>
+<DashboardLayout title="Services & pricing" active="services" businessName={business.name} bookingSlug={business.slug} unread={unread} isAdmin={isAdmin}>
   <ServicesManager currency={business.currency} client:load />
 </DashboardLayout>

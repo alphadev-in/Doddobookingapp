@@ -11,6 +11,7 @@ export default function ServicesManager({ currency }: { currency: string }) {
   const [editing, setEditing] = useState<(Partial<Service> & typeof blank) | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [importReport, setImportReport] = useState<string | null>(null);
 
   const load = () => api<{ services: Service[] }>('/api/services').then((d) => setServices(d.services)).catch((e) => setError(e.message));
   useEffect(() => { load(); }, []);
@@ -39,6 +40,30 @@ export default function ServicesManager({ currency }: { currency: string }) {
     }
   }
 
+  async function importFile(file: File) {
+    setError(null);
+    setImportReport(null);
+    try {
+      const res = await fetch('/api/services/import', { method: 'POST', headers: { 'Content-Type': 'text/csv' }, body: await file.text(), credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Import failed');
+      const bad = data.report.filter((r: any) => r.status === 'error').slice(0, 3).map((r: any) => `row ${r.row}: ${r.message}`);
+      setImportReport(`Created ${data.created}, updated ${data.updated}${data.errors ? `, ${data.errors} skipped (${bad.join('; ')})` : ''}.`);
+      await load();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  }
+
+  async function renameCategory(category: string) {
+    const to = prompt('Rename category', category);
+    if (!to || to.trim() === category) return;
+    try {
+      await api('/api/services/category', { method: 'PATCH', body: { from: category, to } });
+      await load();
+    } catch (e: any) { setError(e.message); }
+  }
+
   async function remove(s: Service) {
     if (!confirm(`Delete ${s.name}? Existing bookings keep their details.`)) return;
     await api(`/api/services/${s.id}`, { method: 'DELETE' }).catch((e) => setError(e.message));
@@ -52,15 +77,27 @@ export default function ServicesManager({ currency }: { currency: string }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">{services?.length ?? 0} services</p>
-        <button type="button" onClick={() => setEditing({ ...blank, id: undefined } as any)} className="min-h-11 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white">+ Add service</button>
+        <div className="flex flex-wrap items-center gap-2">
+          <a href="/api/services/export" download className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium hover:bg-slate-50">Export CSV</a>
+          <label className="inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium hover:bg-slate-50">
+            Import CSV
+            <input type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = ''; }} />
+          </label>
+          <button type="button" onClick={() => setEditing({ ...blank, id: undefined } as any)} className="min-h-11 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm shadow-brand-600/30">+ Add service</button>
+        </div>
       </div>
+      {importReport && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{importReport}</p>}
+      <p className="text-xs text-slate-500">CSV columns: name, category, duration_min, buffer_min, price, deposit_type (none/percent/fixed), deposit_value, active (yes/no). Price is in pounds, e.g. 35.00.</p>
       {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
       {services === null && <div className="space-y-3" aria-busy="true">{[0, 1].map((i) => <div key={i} className="skeleton h-20" />)}</div>}
       {services?.length === 0 && <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center"><p className="font-medium">No services yet</p><p className="mt-1 text-sm text-slate-500">Add what clients can book.</p></div>}
 
       {groups.map(([category, list]) => (
         <section key={category} aria-labelledby={`cat-${category}`}>
-          <h2 id={`cat-${category}`} className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">{category}</h2>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 id={`cat-${category}`} className="text-sm font-semibold uppercase tracking-wide text-slate-500">{category}</h2>
+            <button type="button" onClick={() => renameCategory(category)} className="min-h-11 px-2 text-xs font-semibold text-brand-700 hover:underline">Rename category</button>
+          </div>
           <ul className="grid gap-3 md:grid-cols-2">
             {list.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200">

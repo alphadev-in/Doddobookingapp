@@ -37,7 +37,7 @@ const toIso = (date: string, hhmm: string, tz: string) => new Date(zonedToUtcMs(
 const hhmmOf = (iso: string, tz: string) => timeInTz(iso, tz);
 
 export default function Calendar({ timezone, currency, todayKey }: Props) {
-  const [view, setView] = useState<'day' | 'week'>('day');
+  const [view, setView] = useState<'day' | 'week'>('week');
   const [date, setDate] = useState(todayKey);
   const [staffId, setStaffId] = useState<string>('');
   const [services, setServices] = useState<Service[]>([]);

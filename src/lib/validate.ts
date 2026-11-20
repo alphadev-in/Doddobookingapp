@@ -51,6 +51,12 @@ export function validateBusinessSettings(b: any) {
     if (b.stripeAccountId !== null && !/^acct_[A-Za-z0-9]{6,}$/.test(String(b.stripeAccountId))) throw new BookingError('VALIDATION', 'Stripe account id should look like acct_…');
     data.stripeAccountId = b.stripeAccountId || null;
   }
+  if (b.paymentsEnabled !== undefined) data.paymentsEnabled = !!b.paymentsEnabled;
+  if (b.slotIntervalMin !== undefined) {
+    const v = Number(b.slotIntervalMin);
+    if (![5, 10, 15, 20, 30, 60].includes(v)) throw new BookingError('VALIDATION', 'Time slot must be 5, 10, 15, 20, 30 or 60 minutes');
+    data.slotIntervalMin = v;
+  }
   if (b.depositPolicy !== undefined) data.depositPolicy = str(b.depositPolicy, 'Deposit policy', 1000);
   if (b.cancellationWindowHours !== undefined) data.cancellationWindowHours = int(b.cancellationWindowHours, 'Cancellation window', 0, 720);
   if (b.lateCancelDepositForfeit !== undefined) data.lateCancelDepositForfeit = !!b.lateCancelDepositForfeit;

@@ -1,7 +1,7 @@
 // Data layer on Cloud Firestore (server-only, via firebase-admin).
 // Collections: businesses, services, staff, clients, appointments. Each doc id is the record id;
 // every tenant-scoped doc carries `businessId`. Timestamps are stored as ISO strings.
-import type { Appointment, Business, Client, Service, Staff } from './types';
+import type { AppUser, Appointment, Business, Client, Notification, Service, Staff } from './types';
 import { adminDb } from './firebase-admin';
 import { uid } from './ids';
 
@@ -10,17 +10,24 @@ const col = <T>(name: string) => db().collection(name) as FirebaseFirestore.Coll
 const snap = <T>(d: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.DocumentSnapshot): T => d.data() as T;
 
 // ---------- Businesses ----------
+// Businesses created before a setting existed get its default when read.
+const withDefaults = (b: Business): Business => ({
+  ...b,
+  paymentsEnabled: b.paymentsEnabled ?? true,
+  slotIntervalMin: b.slotIntervalMin ?? 15,
+  subscription: b.subscription ?? { plan: 'trial', status: 'trialing', trialEndsAt: null },
+});
 export const getBusinessById = async (id: string) => {
   const d = await col<Business>('businesses').doc(id).get();
-  return d.exists ? snap<Business>(d) : null;
+  return d.exists ? withDefaults(snap<Business>(d)) : null;
 };
 export async function getBusinessBySlug(slug: string) {
   const q = await col<Business>('businesses').where('slug', '==', slug).limit(1).get();
-  return q.empty ? null : snap<Business>(q.docs[0]);
+  return q.empty ? null : withDefaults(snap<Business>(q.docs[0]));
 }
 export async function getBusinessByOwner(ownerUid: string) {
   const q = await col<Business>('businesses').where('ownerUid', '==', ownerUid).limit(1).get();
-  return q.empty ? null : snap<Business>(q.docs[0]);
+  return q.empty ? null : withDefaults(snap<Business>(q.docs[0]));
 }
 export const isSlugTaken = async (slug: string) => (await getBusinessBySlug(slug)) !== null;
 export async function saveBusiness(b: Business): Promise<Business> {
@@ -140,4 +147,48 @@ export { db as firestore, col };
 export async function listAppointmentsStartingBetween(fromIso: string, toIso: string) {
   const q = await col<Appointment>('appointments').where('startAt', '>=', fromIso).where('startAt', '<', toIso).get();
   return q.docs.map((d) => snap<Appointment>(d));
+}
+
+// ---------- Users (role: business owner or customer) ----------
+export async function getUser(uid: string) {
+  const d = await col<AppUser>('users').doc(uid).get();
+  return d.exists ? snap<AppUser>(d) : null;
+}
+export async function saveUser(u: AppUser) {
+  await col<AppUser>('users').doc(u.uid).set(u, { merge: true });
+  return u;
+}
+export async function listUsers() {
+  const q = await col<AppUser>('users').get();
+  return q.docs.map((d) => snap<AppUser>(d));
+}
+
+// ---------- Notifications ----------
+export async function listNotifications(filter: { businessId?: string; customerEmail?: string }, limit = 50) {
+  let q: FirebaseFirestore.Query<Notification> = col<Notification>('notifications');
+  if (filter.businessId) q = q.where('businessId', '==', filter.businessId);
+  else if (filter.customerEmail) q = q.where('customerEmail', '==', filter.customerEmail);
+  else return [];
+  const snapShot = await q.get();
+  return snapShot.docs.map((d) => snap<Notification>(d)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
+}
+export async function addNotification(n: Omit<Notification, 'id' | 'read' | 'createdAt'>) {
+  const id = `ntf_${uid()}`;
+  const row: Notification = { ...n, id, read: false, createdAt: new Date().toISOString() };
+  await col<Notification>('notifications').doc(id).set(row);
+  return row;
+}
+export async function markNotificationRead(id: string) {
+  await col<Notification>('notifications').doc(id).set({ read: true } as Notification, { merge: true });
+}
+
+export const listAllBusinesses = async () => (await col<Business>('businesses').get()).docs.map((d) => withDefaults(snap<Business>(d)));
+
+export async function listAppointmentsForEmail(email: string) {
+  const q = await col<Appointment>('appointments').where('clientEmail', '==', email.toLowerCase()).get();
+  return q.docs.map((d) => snap<Appointment>(d)).sort((a, b) => a.startAt.localeCompare(b.startAt));
+}
+export async function countUnread(filter: { businessId?: string; customerEmail?: string }) {
+  const rows = await listNotifications(filter, 200);
+  return rows.filter((n) => !n.read).length;
 }

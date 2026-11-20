@@ -12,6 +12,7 @@ export const POST: APIRoute = withErrors(async ({ request }) => {
   const business = await getBusinessBySlug(String(body.businessSlug ?? ''));
   if (!business) throw new BookingError('NOT_FOUND', 'Business not found', 404);
   const serviceIds = Array.isArray(body.serviceIds) ? body.serviceIds.map(String) : [];
+  if (!business.paymentsEnabled) throw new BookingError('VALIDATION', 'Online payments are turned off for this business');
   const { quote } = await quoteFor(business, serviceIds);
   if (quote.depositCents <= 0) throw new BookingError('VALIDATION', 'No deposit is required for this booking');
   const intent = await createDepositIntent({

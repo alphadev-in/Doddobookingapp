@@ -6,6 +6,7 @@ import { clientAuth } from '../../lib/firebase-client';
 import { api } from './api';
 
 interface Props { mode: 'login' | 'signup'; next: string; }
+type Role = 'business' | 'customer';
 
 const friendly: Record<string, string> = {
   'auth/invalid-credential': 'Email or password is incorrect.',
@@ -22,6 +23,8 @@ export default function AuthForm({ mode, next }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [role, setRole] = useState<Role>('business');
+  const [name, setName] = useState('');
   const isSignup = mode === 'signup';
 
   async function onSubmit(e: FormEvent) {
@@ -38,8 +41,11 @@ export default function AuthForm({ mode, next }: Props) {
         : await signInWithEmailAndPassword(auth, email.trim(), password);
       const idToken = await cred.user.getIdToken();
       await api('/api/auth/session', { body: { idToken } });
-      // New accounts go to onboarding; the dashboard redirects there automatically if no business exists.
-      window.location.href = isSignup ? '/onboarding' : next || '/dashboard';
+      if (isSignup) await api('/api/me', { body: { role, name } });
+      const me = await api<{ role: string | null; isAdmin: boolean; hasBusiness: boolean }>('/api/me');
+      if (me.role === 'customer') window.location.href = next && next.startsWith('/account') ? next : '/account';
+      else if (me.isAdmin && !isSignup && (!next || next === '/dashboard')) window.location.href = '/admin';
+      else window.location.href = isSignup || !me.hasBusiness ? '/onboarding' : next || '/dashboard';
     } catch (err: any) {
       setError(friendly[err?.code] ?? err?.message ?? 'Something went wrong.');
       setBusy(false);
@@ -69,6 +75,26 @@ export default function AuthForm({ mode, next }: Props) {
         <input id="password" type="password" autoComplete={isSignup ? 'new-password' : 'current-password'} required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 outline-none" />
       </div>
+      {isSignup && (
+        <>
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-slate-700">Your name</label>
+            <input id="name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30" />
+          </div>
+          <fieldset>
+            <legend className="text-sm font-medium text-slate-700">I want to</legend>
+            <div className="mt-2 grid grid-cols-2 gap-2" role="radiogroup">
+              {([['business', 'Run a business', 'Take bookings & manage my team'], ['customer', 'Book appointments', 'See and manage my bookings']] as const).map(([r, t, d]) => (
+                <button key={r} type="button" role="radio" aria-checked={role === r} onClick={() => setRole(r)}
+                  className={`rounded-xl border p-3 text-left ${role === r ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-500/20' : 'border-slate-300 hover:bg-slate-50'}`}>
+                  <span className="block text-sm font-semibold">{t}</span>
+                  <span className="block text-xs text-slate-500">{d}</span>
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        </>
+      )}
       {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
       {info && <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{info}</p>}
       <button type="submit" disabled={busy}

@@ -5,7 +5,7 @@ import { addDaysToDateKey, formatDateTime, toIcs } from '../../lib/time';
 
 export interface PublicService { id: string; name: string; category: string; durationMin: number; priceCents: number; depositType: string; depositValue: number; }
 export interface PublicStaff { id: string; name: string; role: string; color: string; serviceIds: string[]; }
-export interface PublicBusiness { slug: string; name: string; timezone: string; currency: string; depositPolicy: string; cancellationWindowHours: number; }
+export interface PublicBusiness { slug: string; name: string; timezone: string; currency: string; depositPolicy: string; cancellationWindowHours: number; paymentsEnabled: boolean; }
 
 interface Props { business: PublicBusiness; services: PublicService[]; staff: PublicStaff[]; todayKey: string; }
 type Slot = { startAt: string; time: string; staffId: string };
@@ -32,7 +32,7 @@ export default function BookingFlow({ business, services, staff, todayKey }: Pro
 
   const chosen = services.filter((s) => serviceIds.includes(s.id));
   const totalCents = chosen.reduce((n, s) => n + s.priceCents, 0);
-  const depositCents = chosen.reduce((n, s) => n + (s.depositType === 'percent' ? Math.round((s.priceCents * s.depositValue) / 100) : s.depositType === 'fixed' ? s.depositValue : 0), 0);
+  const depositCents = !business.paymentsEnabled ? 0 : chosen.reduce((n, s) => n + (s.depositType === 'percent' ? Math.round((s.priceCents * s.depositValue) / 100) : s.depositType === 'fixed' ? s.depositValue : 0), 0);
   const totalMin = chosen.reduce((n, s) => n + s.durationMin, 0);
   const eligibleStaff = useMemo(() => staff.filter((m) => serviceIds.length && serviceIds.every((id) => m.serviceIds.includes(id))), [staff, serviceIds]);
   const dateChoices = Array.from({ length: 14 }, (_, i) => addDaysToDateKey(todayKey, i));
@@ -289,9 +289,17 @@ function Confirmation({ b, c, chosen, staff, slot }: { b: PublicBusiness; c: Con
     a.click();
     URL.revokeObjectURL(url);
   }
+  const colours = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#ec4899'];
+  const pieces = Array.from({ length: 60 }, (_, i) => ({
+    left: `${(i * 37) % 100}vw`, colour: colours[i % colours.length], delay: `${(i % 12) * 0.08}s`,
+    dur: `${2.2 + (i % 5) * 0.25}s`, dx: `${((i * 53) % 200) - 100}px`, rot: `${360 + (i % 4) * 180}deg`,
+  }));
   return (
-    <div className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200" role="status">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700" aria-hidden="true">✓</div>
+    <div className="relative overflow-hidden rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200 anim-pop" role="status">
+      {pieces.map((p, i) => (
+        <span key={i} aria-hidden="true" className="confetti-piece" style={{ left: p.left, background: p.colour, animationDelay: p.delay, animationDuration: p.dur, ['--dx' as any]: p.dx, ['--rot' as any]: p.rot }} />
+      ))}
+      <div className="check-pop mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl text-emerald-700" aria-hidden="true">✓</div>
       <h2 className="mt-4 text-xl font-semibold">Booking confirmed</h2>
       <p className="mt-1 text-slate-600">{formatDateTime(c.startAt, b.timezone)} with {who}</p>
       <p className="mt-1 text-sm text-slate-500">{chosen.map((s) => s.name).join(', ')}</p>

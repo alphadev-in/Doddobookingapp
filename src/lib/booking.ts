@@ -5,7 +5,7 @@ import { getOpenSlots, type BusyInterval } from './availability';
 import { dateKeyInTz } from './time';
 import {
   getBusinessById, getServices, listAppointments, listStaff, findClient, saveClient, recomputeClientStats,
-  updateAppointment, findAppointmentByIntent,
+  updateAppointment, findAppointmentByIntent, addNotification,
 } from './repo';
 import { verifyDeposit, refundDeposit } from './payments';
 import { notifyClient } from './notifications';
@@ -71,6 +71,7 @@ export async function getDaySlots(opts: { businessId: string; serviceIds: string
     const slots = getOpenSlots({
       timezone: business.timezone, businessHours: business.hours, staffHours: st.hours, date: opts.date,
       durationMin: quote.durationMin, bufferMin: quote.bufferMin, busy: busyFrom(appts, st.id), earliestMs,
+      stepMin: business.slotIntervalMin,
     });
     for (const s of slots) if (!byStart.has(s.startAt)) byStart.set(s.startAt, { ...s, staffId: st.id });
   }
@@ -88,6 +89,7 @@ function pickStaff(args: {
       timezone: args.business.timezone, businessHours: args.business.hours, staffHours: st.hours, date,
       durationMin: args.durationMin, bufferMin: args.bufferMin, busy: busyFrom(args.appts, st.id, args.excludeId),
       earliestMs: args.enforceNotice ? Date.now() + MIN_NOTICE_MIN * MIN : undefined,
+      stepMin: args.business.slotIntervalMin,
     });
     if (slots.some((s) => s.startAt === args.startAt)) return st;
   }
@@ -128,7 +130,8 @@ export async function createBooking(input: CreateBookingInput): Promise<Appointm
   }
 
   const { quote } = await quoteFor(business, input.serviceIds);
-  const needsDeposit = input.source === 'online' && quote.depositCents > 0;
+  const depositDue = business.paymentsEnabled ? quote.depositCents : 0;
+  const needsDeposit = input.source === 'online' && depositDue > 0;
   let paymentStatus: Appointment['paymentStatus'] = quote.priceCents > 0 ? 'unpaid' : 'n/a';
 
   if (needsDeposit) {
@@ -156,7 +159,7 @@ export async function createBooking(input: CreateBookingInput): Promise<Appointm
     const row: Appointment = {
       id: apptRef.id, businessId: business.id, kind: input.kind ?? 'booking', staffId: staff.id, clientId: client.id,
       serviceIds: input.serviceIds, title: quote.serviceNames.join(' + '), startAt: input.startAt, endAt, bufferMin: quote.bufferMin,
-      status: 'confirmed', priceCents: quote.priceCents, depositCents: needsDeposit ? quote.depositCents : 0, paymentStatus,
+      status: 'confirmed', priceCents: quote.priceCents, depositCents: needsDeposit ? depositDue : 0, paymentStatus,
       paymentIntentId: input.paymentIntentId ?? null, clientName: name, clientEmail: email, clientPhone: phone, notes: input.notes ?? '',
       source: input.source, manageToken: token(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
@@ -165,6 +168,7 @@ export async function createBooking(input: CreateBookingInput): Promise<Appointm
   });
 
   await recomputeClientStats(client.id);
+  await notifyParties(business, appt, 'booked');
   await notifyClient('confirmation', business, appt, appt.title, timeLabel(business, appt.startAt)).catch(() => {});
   return appt;
 }
@@ -226,6 +230,21 @@ export async function reschedule(appt: Appointment, newStartAt: string, enforceN
   });
 }
 
+/** In-app notifications for the business owner and the customer (email-matched). */
+async function notifyParties(business: Business, appt: Appointment, event: 'booked' | 'cancelled' | 'cancelled_by_client') {
+  const when = timeLabel(business, appt.startAt);
+  const who = appt.clientName || 'A client';
+  const copy = {
+    booked: { biz: `New booking: ${who}`, cust: `Booking confirmed at ${business.name}`, body: `${appt.title} · ${when}` },
+    cancelled: { biz: `Booking cancelled: ${who}`, cust: `Your booking at ${business.name} was cancelled`, body: `${appt.title} · ${when}` },
+    cancelled_by_client: { biz: `${who} cancelled`, cust: `You cancelled at ${business.name}`, body: `${appt.title} · ${when}` },
+  }[event];
+  await addNotification({ businessId: business.id, title: copy.biz, body: copy.body, href: '/dashboard/calendar' });
+  if (appt.clientEmail) {
+    await addNotification({ customerEmail: appt.clientEmail.toLowerCase(), title: copy.cust, body: copy.body, href: `/booking/${appt.id}?t=${appt.manageToken}` });
+  }
+}
+
 function timeLabel(business: Business, iso: string) {
   return new Intl.DateTimeFormat('en-GB', { timeZone: business.timezone, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
 }
@@ -262,6 +281,7 @@ export async function setStatus(appt: Appointment, status: Appointment['status']
   const updated = (await updateAppointment(appt.id, { status, paymentStatus })) as Appointment;
   if (appt.clientId) await recomputeClientStats(appt.clientId);
   if (status === 'cancelled' && appt.kind !== 'block') {
+    await notifyParties(business, updated, origin === 'client' ? 'cancelled_by_client' : 'cancelled');
     await notifyClient('cancellation', business, updated, appt.title, timeLabel(business, appt.startAt)).catch(() => {});
   }
   return updated;

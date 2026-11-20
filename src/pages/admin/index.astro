@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AdminPanel from '../../components/islands/AdminPanel';
+import { SESSION_COOKIE, verifySessionCookie, isAdminEmail } from '../../lib/session';
+import { adminAuth } from '../../lib/firebase-admin';
+export const prerender = false;
+
+// Admin only. Anyone else gets a plain 404 so the page's existence is not revealed.
+const uid = await verifySessionCookie(Astro.cookies.get(SESSION_COOKIE)?.value ?? null);
+if (!uid) return Astro.redirect('/login?next=/admin');
+const me = await adminAuth().getUser(uid);
+if (!isAdminEmail(me.email ?? '')) return new Response('Not found', { status: 404, headers: { 'X-Robots-Tag': 'noindex' } });
+---
+<BaseLayout title="Admin" noindex>
+  <main class="min-h-dvh bg-slate-100 px-4 py-6 md:px-8">
+    <div class="mx-auto max-w-6xl">
+      <header class="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-rose-600">Admin</p>
+          <h1 class="text-2xl font-bold">Doddo control centre</h1>
+        </div>
+        <a href="/dashboard" class="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium hover:bg-slate-50">Business dashboard</a>
+      </header>
+      <AdminPanel client:load />
+    </div>
+  </main>
+</BaseLayout>

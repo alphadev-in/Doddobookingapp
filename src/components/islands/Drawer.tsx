@@ -25,7 +25,7 @@ export default function Drawer({ open, onClose, title, children, footer }: Props
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={title}>
       <button type="button" className="absolute inset-0 bg-slate-900/40" aria-label="Close" onClick={onClose} />
-      <div className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] flex-col rounded-t-2xl bg-white shadow-xl md:inset-y-0 md:right-0 md:left-auto md:max-h-none md:w-[480px] md:rounded-none">
+      <div className="absolute inset-x-0 bottom-0 flex max-h-[90dvh] flex-col rounded-t-3xl bg-white shadow-2xl anim-pop md:inset-auto md:left-1/2 md:top-1/2 md:w-[min(560px,92vw)] md:max-h-[85dvh] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 className="text-base font-semibold">{title}</h2>
           <button type="button" onClick={onClose} className="rounded-lg px-3 py-2 text-slate-500 hover:bg-slate-100" aria-label="Close">✕</button>
