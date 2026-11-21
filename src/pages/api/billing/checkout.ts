@@ -23,7 +23,7 @@ export const POST: APIRoute = withErrors(async ({ request, url }) => {
     allow_promotion_codes: 'true',
     client_reference_id: business.id,
     customer_email: u?.email ?? '',
-    success_url: `${origin}/dashboard/billing?status=success`,
+    success_url: `${origin}/dashboard?status=success`,
     cancel_url: `${origin}/dashboard/billing?status=cancelled`,
     'subscription_data[metadata][businessId]': business.id,
     'metadata[businessId]': business.id,

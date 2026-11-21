@@ -4,7 +4,7 @@ import { api } from './api';
 import { defaultHours } from '../../lib/defaults';
 import type { Business, WeekHours } from '../../lib/types';
 
-const TABS = ['Profile', 'Hours & policy', 'Booking', 'Payments', 'Notifications'] as const;
+const TABS = ['Profile', 'Hours & policy', 'Booking', 'Subscription', 'Payments', 'Notifications'] as const;
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 interface Props { business: Business; paymentsMode: 'live' | 'sandbox'; origin: string; }
@@ -47,6 +47,14 @@ export default function SettingsPanel({ business, paymentsMode, origin }: Props)
         )}
         {tab === 'Hours & policy' && (
           <HoursTab b={b} input={input} busy={busy} onSave={save} />
+        )}
+        {tab === 'Subscription' && (
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold">Subscription</h2>
+            <p className="text-sm text-slate-600">Doddo is £5 a month with no contract. Status: <strong>{b.subscription?.status ?? 'trialing'}</strong>.</p>
+            <a href="/dashboard/billing" className="inline-flex min-h-12 items-center rounded-xl bg-brand-600 px-5 font-semibold text-white">Manage subscription</a>
+            <p className="text-xs text-slate-500">Update your card, view invoices or cancel from Stripe's secure page.</p>
+          </section>
         )}
         {tab === 'Booking' && (
           <BookingTab b={b} busy={busy} onSave={save} />

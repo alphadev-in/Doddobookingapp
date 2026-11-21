@@ -1,7 +1,7 @@
 // Server-side booking rules: quoting, staff assignment, transactional creation, cancellation policy.
 // Server-only (uses Firestore). Pure slot math lives in availability.ts.
 import type { Appointment, Business, Quote, Service, Staff } from './types';
-import { getOpenSlots, type BusyInterval } from './availability';
+import { getOpenSlots, isWindowFree, type BusyInterval } from './availability';
 import { dateKeyInTz, timeInTz } from './time';
 import {
   getBusinessById, getServices, listAppointments, listStaff, findClient, saveClient, recomputeClientStats,
@@ -82,8 +82,14 @@ export async function getDaySlots(opts: { businessId: string; serviceIds: string
 /** Pick a staff member able to take exactly this start time, from preloaded data. */
 function pickStaff(args: {
   business: Business; staff: Staff[]; appts: Appointment[]; serviceIds: string[]; staffId: string | 'any';
-  startAt: string; durationMin: number; bufferMin: number; excludeId?: string; enforceNotice: boolean;
+  startAt: string; durationMin: number; bufferMin: number; excludeId?: string; enforceNotice: boolean; ignoreHours?: boolean;
 }): Staff | null {
+  if (args.ignoreHours) {
+    // Owner bookings may fall outside working hours; only real clashes block them.
+    const startMs = Date.parse(args.startAt);
+    return eligibleStaff(args.staff, args.serviceIds, args.staffId).find((st) =>
+      isWindowFree(startMs, args.durationMin, args.bufferMin, busyFrom(args.appts, st.id, args.excludeId))) ?? null;
+  }
   const date = dateKeyInTz(args.startAt, args.business.timezone);
   for (const st of eligibleStaff(args.staff, args.serviceIds, args.staffId)) {
     const slots = getOpenSlots({
@@ -155,6 +161,7 @@ export async function createBooking(input: CreateBookingInput): Promise<Appointm
     const staff = pickStaff({
       business, staff: staffList, appts, serviceIds: input.serviceIds, staffId: input.staffId,
       startAt: input.startAt, durationMin: quote.durationMin, bufferMin: quote.bufferMin, enforceNotice: input.source === 'online',
+      ignoreHours: input.source === 'dashboard',
     });
     if (!staff) throw new BookingError('CONFLICT', conflictMessage(business, staffList, appts, input.staffId, input.startAt, quote.durationMin, quote.bufferMin), 409);
     const row: Appointment = {
@@ -221,7 +228,7 @@ export async function reschedule(appt: Appointment, newStartAt: string, enforceN
     const appts = q.docs.map((d) => d.data() as Appointment);
     const staff = pickStaff({
       business, staff: staffList, appts, serviceIds: appt.serviceIds, staffId: appt.staffId ?? 'any', startAt: newStartAt,
-      durationMin, bufferMin: appt.bufferMin, excludeId: appt.id, enforceNotice,
+      durationMin, bufferMin: appt.bufferMin, excludeId: appt.id, enforceNotice, ignoreHours: !enforceNotice,
     });
     if (!staff) throw new BookingError('CONFLICT', 'That time is not available', 409);
     const next = { ...appt, staffId: appt.kind === 'block' ? appt.staffId : staff.id, startAt: newStartAt,

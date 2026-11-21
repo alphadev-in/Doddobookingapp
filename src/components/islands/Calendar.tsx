@@ -42,6 +42,7 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
   const [dir, setDir] = useState<'next' | 'prev'>('next');
   const go = (next: string, d: 'next' | 'prev') => { setDir(d); setDate(next); };
   const [teamFilter, setTeamFilter] = useState<string>('all'); // 'all' or a staff id
+  const [filtersOpen, setFiltersOpen] = useState(false); // phones: toolbar and team filter are hidden until opened
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [appts, setAppts] = useState<Appointment[]>([]);
@@ -119,6 +120,15 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 sm:hidden">
+        <button type="button" aria-expanded={filtersOpen} onClick={() => setFiltersOpen((v) => !v)}
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4" /></svg>
+          {filtersOpen ? 'Hide filters' : 'Show filters'}
+        </button>
+        <span className="text-sm font-medium text-slate-600">{teamFilter === 'all' ? 'Everyone' : activeStaff.find((x) => x.id === teamFilter)?.name}</span>
+      </div>
+      <div className={`${filtersOpen ? 'grid' : 'hidden'} gap-3 sm:grid`}>
       {/* Toolbar: stacks on phones so nothing overflows the viewport */}
       <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
         <div className="flex rounded-lg border border-slate-300 bg-white p-1" role="tablist" aria-label="View">
@@ -154,6 +164,7 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
         ))}
       </div>
 
+      </div>
       {view === 'week' && (
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden" aria-label="Jump to day">
           {days.map((d) => {
@@ -414,11 +425,11 @@ function DetailDrawer({ appt, timezone, currency, services, staffName, onClose, 
           </>}
         </dl>
 
-        {!isBlock && (
+        {!isBlock && appt.status === 'confirmed' && (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <button disabled={busy || appt.status === 'completed'} onClick={() => setStatus('completed')} className="min-h-11 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white disabled:opacity-40">Mark completed</button>
-            <button disabled={busy || appt.status === 'no_show'} onClick={() => setStatus('no_show')} className="min-h-11 rounded-lg bg-rose-600 px-3 text-sm font-semibold text-white disabled:opacity-40">No-show</button>
-            <button disabled={busy || appt.status === 'cancelled'} onClick={() => setStatus('cancelled')} className="min-h-11 rounded-lg border border-rose-300 px-3 text-sm font-semibold text-rose-700 disabled:opacity-40">Cancel</button>
+            <button disabled={busy} onClick={() => setStatus('completed')} className="min-h-11 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white disabled:opacity-40">Mark completed</button>
+            <button disabled={busy} onClick={() => setStatus('no_show')} className="min-h-11 rounded-lg bg-rose-600 px-3 text-sm font-semibold text-white disabled:opacity-40">No-show</button>
+            <button disabled={busy} onClick={() => setStatus('cancelled')} className="min-h-11 rounded-lg border border-rose-300 px-3 text-sm font-semibold text-rose-700 disabled:opacity-40">Cancel</button>
           </div>
         )}
 
