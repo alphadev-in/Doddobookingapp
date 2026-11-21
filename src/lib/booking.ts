@@ -10,6 +10,8 @@ import {
 import { verifyDeposit, refundDeposit } from './payments';
 import { notifyClient } from './notifications';
 import { sendPush } from './push';
+import { sendEmail } from './email';
+import { businessNewBookingEmail } from './email-templates';
 import { token, uid } from './ids';
 
 const MIN = 60_000;
@@ -177,7 +179,7 @@ export async function createBooking(input: CreateBookingInput): Promise<Appointm
 
   await recomputeClientStats(client.id);
   await notifyParties(business, appt, 'booked');
-  await notifyClient('confirmation', business, appt, appt.title, timeLabel(business, appt.startAt)).catch(() => {});
+  await notifyClient('confirmation', business, appt, appt.title, timeLabel(business, appt.startAt), staffList.find((s) => s.id === appt.staffId)?.name).catch(() => {});
   return appt;
 }
 
@@ -269,6 +271,23 @@ async function notifyParties(business: Business, appt: Appointment, event: 'book
   }[event];
   await addNotification({ businessId: business.id, title: copy.biz, body: copy.body, href: '/dashboard/calendar' });
   await sendPush({ businessId: business.id }, { title: copy.biz, body: copy.body, url: '/dashboard/calendar' }).catch(() => {});
+  
+  // If a new booking is placed, notify the business owner via beautiful email
+  if (event === 'booked' && business.email) {
+    const bizStaff = (await listStaff(business.id)).find((s) => s.id === appt.staffId);
+    const email = businessNewBookingEmail({
+      business,
+      appt,
+      timeLabel: when,
+      staffName: bizStaff?.name,
+    });
+    await sendEmail({
+      to: business.email,
+      subject: email.subject,
+      html: email.html,
+    }).catch((err) => console.error('[email:biz-booking-alert-failed]', err));
+  }
+
   if (appt.clientEmail) {
     const customerEmail = appt.clientEmail.toLowerCase();
     const url = `/booking/${appt.id}?t=${appt.manageToken}`;

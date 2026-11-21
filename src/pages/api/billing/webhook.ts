@@ -3,6 +3,8 @@ import { verifyWebhookSignature } from '../../../lib/payments';
 import { getBusinessById, saveBusiness } from '../../../lib/repo';
 import { json } from '../../../lib/http';
 import { mapSubscriptionStatus } from '../../../lib/stripe';
+import { sendEmail } from '../../../lib/email';
+import { subscriptionActivatedEmail } from '../../../lib/email-templates';
 
 export const prerender = false;
 
@@ -24,6 +26,20 @@ export const POST: APIRoute = async ({ request }) => {
   const sub = business.subscription;
   if (event.type === 'checkout.session.completed') {
     await saveBusiness({ ...business, subscription: { ...sub, plan: 'standard', status: 'active', stripeCustomerId: obj.customer, stripeSubscriptionId: obj.subscription } });
+    
+    // Send beautiful subscription activation confirmation email to the business owner
+    if (business.email) {
+      const email = subscriptionActivatedEmail({
+        businessName: business.name,
+        planName: 'Doddo Standard',
+        amount: '£5.00',
+      });
+      await sendEmail({
+        to: business.email,
+        subject: email.subject,
+        html: email.html,
+      }).catch((err) => console.error('[email:subscription-alert-failed]', err));
+    }
   } else if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
     const status = event.type === 'customer.subscription.deleted' ? 'cancelled' : mapSubscriptionStatus(obj.status);
     await saveBusiness({

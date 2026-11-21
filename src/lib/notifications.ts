@@ -1,5 +1,10 @@
-// Customer notifications. Email uses Resend when RESEND_API_KEY and EMAIL_FROM are set; SMS uses Twilio
-// when TWILIO_* keys are set. Without keys the message is logged (dev) and nothing is sent.
+// Customer and business notifications via beautifully designed SMTP email and optional SMS/Twilio.
+import { sendEmail } from './email';
+import {
+  customerBookingCancelledEmail,
+  customerBookingConfirmedEmail,
+  customerBookingReminderEmail,
+} from './email-templates';
 import type { Appointment, Business } from './types';
 
 export type NotificationKind = 'confirmation' | 'reminder24h' | 'cancellation';
@@ -17,19 +22,8 @@ export function buildMessage(kind: NotificationKind, business: Business, appt: A
   });
 }
 
-async function deliverEmail(to: string, subject: string, body: string) {
-  const key = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM;
-  if (!key || !from) {
-    console.info(`[email:not-configured] to=${to} subject="${subject}"`);
-    return;
-  }
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from, to, subject, text: body }),
-  });
-  if (!res.ok) throw new Error(`Email failed: ${res.status} ${await res.text()}`);
+async function deliverEmail(to: string, subject: string, html: string, text?: string) {
+  await sendEmail({ to, subject, html, text });
 }
 
 async function deliverSms(to: string, body: string) {
@@ -48,11 +42,31 @@ async function deliverSms(to: string, body: string) {
   if (!res.ok) throw new Error(`SMS failed: ${res.status}`);
 }
 
-/** Fire the customer notifications for an event, honouring the business toggles. Errors are thrown to the caller. */
-export async function notifyClient(kind: NotificationKind, business: Business, appt: Appointment, serviceName: string, timeLabel: string) {
+/** Fire the customer notifications for an event, honouring the business toggles. */
+export async function notifyClient(
+  kind: NotificationKind,
+  business: Business,
+  appt: Appointment,
+  serviceName: string,
+  timeLabel: string,
+  staffName?: string
+) {
   if (!business.notifications[kind]) return;
-  const body = buildMessage(kind, business, appt, serviceName, timeLabel);
-  const subject = kind === 'confirmation' ? 'Booking confirmed' : kind === 'cancellation' ? 'Booking cancelled' : 'Appointment reminder';
-  if (appt.clientEmail) await deliverEmail(appt.clientEmail, subject, body);
-  if (appt.clientPhone) await deliverSms(appt.clientPhone, body);
+  const plainText = buildMessage(kind, business, appt, serviceName, timeLabel);
+
+  if (appt.clientEmail) {
+    let emailData: { subject: string; html: string };
+    if (kind === 'confirmation') {
+      emailData = customerBookingConfirmedEmail({ business, appt, timeLabel, staffName });
+    } else if (kind === 'cancellation') {
+      emailData = customerBookingCancelledEmail({ business, appt, timeLabel });
+    } else {
+      emailData = customerBookingReminderEmail({ business, appt, timeLabel });
+    }
+    await deliverEmail(appt.clientEmail, emailData.subject, emailData.html, plainText);
+  }
+
+  if (appt.clientPhone) {
+    await deliverSms(appt.clientPhone, plainText).catch(() => {});
+  }
 }
