@@ -9,5 +9,5 @@ export function defaultHours(): WeekHours {
 export const DEFAULT_BUSINESS_SETTINGS = {
   paymentsEnabled: true,
   slotIntervalMin: 15 as const,
-  subscription: { plan: 'trial' as const, status: 'trialing' as const, trialEndsAt: null as string | null },
+  subscription: { plan: 'trial' as const, status: 'incomplete' as const, trialEndsAt: null as string | null },
 };

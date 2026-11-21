@@ -83,6 +83,11 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  // Keep the calendar current while it is open (new bookings from clients appear without a reload).
+  useEffect(() => {
+    const t = setInterval(() => { if (!document.querySelector('[role=dialog]') && !document.hidden) load(); }, 30000);
+    return () => clearInterval(t);
+  }, [load]);
 
   const colW = typeof window !== 'undefined' && window.innerWidth >= 768 ? COL_W_DESKTOP : COL_W_MOBILE;
   const totalH = (END_H - START_H) * 60 * PX_PER_MIN;

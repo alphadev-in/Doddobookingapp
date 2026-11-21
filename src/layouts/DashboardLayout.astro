@@ -143,6 +143,19 @@ const linkCls = (on: boolean) =>
       </div>
     </div>
     <script is:inline>
+      // Refresh dashboard data when you come back to the tab (e.g. after a customer books on their phone).
+      // Skipped while a dialog is open or a field is being typed in, so nothing you are writing is lost.
+      (function () {
+        var hiddenAt = 0;
+        document.addEventListener('visibilitychange', function () {
+          if (document.hidden) { hiddenAt = Date.now(); return; }
+          if (!hiddenAt || Date.now() - hiddenAt < 15000) return;
+          var busy = document.querySelector('[role=dialog]') || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
+          if (!busy) window.location.reload();
+        });
+      })();
+    </script>
+    <script is:inline>
       (function () {
         var sheet = document.getElementById('more-sheet');
         function open() { sheet.classList.remove('hidden'); sheet.classList.add('flex'); }

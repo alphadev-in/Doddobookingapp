@@ -4,7 +4,7 @@ import { adminAuth } from './firebase-admin';
 import { getBusinessByOwner } from './repo';
 import { getCookie } from './http';
 import { BookingError } from './booking';
-import type { Business } from './types';
+import { isSubscribed, type Business } from './types';
 
 export const SESSION_COOKIE = '__session';
 export const SESSION_MAX_AGE_MS = 5 * 24 * 60 * 60 * 1000;
@@ -26,10 +26,14 @@ export async function ownerContext(request: Request): Promise<{ uid: string; bus
   return { uid, business: await getBusinessByOwner(uid) };
 }
 
-/** Like ownerContext but requires a finished onboarding (a business). */
-export async function requireBusiness(request: Request): Promise<Business> {
+/**
+ * Requires a finished onboarding AND an active subscription.
+ * Billing routes pass { allowUnpaid: true } so the owner can subscribe in the first place.
+ */
+export async function requireBusiness(request: Request, opts: { allowUnpaid?: boolean } = {}): Promise<Business> {
   const { business } = await ownerContext(request);
   if (!business) throw new BookingError('NOT_FOUND', 'Finish onboarding first', 404);
+  if (!opts.allowUnpaid && !isSubscribed(business)) throw new BookingError('PAYMENT', 'Subscribe to Doddo to use the dashboard', 402);
   return business;
 }
 

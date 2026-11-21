@@ -48,6 +48,16 @@ export default function Onboarding({ defaultTimezone, defaultCurrency }: Props) 
       for (const m of team) {
         await api('/api/staff', { body: { name: m.name, role: m.role, color: m.color, active: true, serviceIds: created.map((c) => c.id), hours } });
       }
+      // Direct newly onboarded users straight into Stripe Checkout for subscription
+      try {
+        const { url } = await api<{ url: string }>('/api/billing/checkout', { body: {} });
+        if (url) {
+          window.location.href = url;
+          return;
+        }
+      } catch (_) {
+        // Fall back to billing page if checkout creation fails or keys are not ready
+      }
       window.location.href = '/dashboard/billing?welcome=1';
     } catch (e: any) {
       setError(e.message);

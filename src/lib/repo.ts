@@ -24,7 +24,7 @@ const withDefaults = (b: Business): Business => ({
   coverUrl: b.coverUrl ?? '',
   paymentsEnabled: b.paymentsEnabled ?? true,
   slotIntervalMin: b.slotIntervalMin ?? 15,
-  subscription: b.subscription ?? { plan: 'trial', status: 'trialing', trialEndsAt: null },
+  subscription: b.subscription ?? { plan: 'trial', status: 'incomplete', trialEndsAt: null },
 });
 export const getBusinessById = async (id: string) => {
   const d = await col<Business>('businesses').doc(id).get();

@@ -13,6 +13,7 @@ export default function SettingsPanel({ business, paymentsMode, origin }: Props)
   const [tab, setTab] = useState<(typeof TABS)[number]>('Profile');
   const [b, setB] = useState<Business>(business);
   const [status, setStatus] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null);
+  const connectStatus = typeof window !== 'undefined' ? ({ ok: 'Stripe connected.', failed: 'Stripe could not be connected. Please try again.', invalid: 'That connection link has expired. Please try again.' } as Record<string, string>)[new URLSearchParams(window.location.search).get('connect') ?? ''] ?? null : null;
   const [busy, setBusy] = useState(false);
 
   async function save(patch: Partial<Business>) {
@@ -64,20 +65,23 @@ export default function SettingsPanel({ business, paymentsMode, origin }: Props)
             <h2 className="text-lg font-semibold">Payments</h2>
             <div className={`rounded-xl p-4 text-sm ${paymentsMode === 'live' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-900'}`}>
               {paymentsMode === 'live'
-                ? <>Stripe is <strong>live</strong>. Deposits are charged to your account.</>
-                : <>Sandbox mode. No <code>STRIPE_SECRET_KEY</code> is set, so deposits are simulated and no money moves.</>}
+                ? <>Card payments are <strong>live</strong>.</>
+                : <>Card payments are in test mode. Deposits are simulated.</>}
             </div>
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div className="rounded-lg bg-slate-50 p-3"><dt className="text-slate-500">Stripe Connect account</dt><dd className="font-medium">{b.stripeAccountId ?? 'Not connected'}</dd></div>
-              <div className="rounded-lg bg-slate-50 p-3"><dt className="text-slate-500">Currency</dt><dd className="font-medium">{b.currency}</dd></div>
-            </dl>
-            <p className="text-sm text-slate-600">To take real deposits, add the keys listed in the README, then connect a Stripe Connect account and save its id (<code>acct_…</code>) below.</p>
-            <label className="block text-sm font-medium">Stripe Connect account id
-              <input className={input} placeholder="acct_…" defaultValue={b.stripeAccountId ?? ''} onBlur={(e) => {
-                const v = e.target.value.trim();
-                if (v !== (b.stripeAccountId ?? '')) save({ stripeAccountId: v || null } as any);
-              }} />
-            </label>
+            {b.stripeAccountId ? (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="font-semibold text-emerald-900">Stripe connected</p>
+                <p className="mt-1 text-sm text-emerald-800">Deposits you take from clients are paid straight into your Stripe account.</p>
+                <p className="mt-2 text-xs text-emerald-700">Account: {b.stripeAccountId}</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 p-4">
+                <p className="font-semibold">Connect your Stripe account</p>
+                <p className="mt-1 text-sm text-slate-600">To take deposits, connect your own Stripe account. Deposits are paid straight into it. You need a Stripe account, which you can create during the connection step.</p>
+                <a href="/api/connect/start" className="mt-4 inline-flex min-h-12 items-center rounded-xl bg-brand-600 px-5 font-semibold text-white">Connect with Stripe</a>
+              </div>
+            )}
+            {connectStatus && <p role="status" className="text-sm text-slate-700">{connectStatus}</p>}
           </section>
         )}
         {tab === 'Notifications' && (

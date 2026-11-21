@@ -1,5 +1,5 @@
 // Subscribe (Stripe Checkout) or manage (Stripe customer portal). Redirects to Stripe.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from './api';
 
 export default function BillingActions({ canManage, isActive }: { canManage: boolean; isActive: boolean }) {
@@ -17,6 +17,15 @@ export default function BillingActions({ canManage, isActive }: { canManage: boo
       setBusy(null);
     }
   }
+
+  // Auto-launch Stripe Checkout if redirected with ?subscribe=1 or ?welcome=1
+  useEffect(() => {
+    if (typeof window === 'undefined' || isActive) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subscribe') === '1' || params.get('welcome') === '1') {
+      go('checkout');
+    }
+  }, [isActive]);
 
   return (
     <div className="space-y-3">

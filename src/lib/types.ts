@@ -38,7 +38,7 @@ export interface Business {
   slotIntervalMin: 5 | 10 | 15 | 20 | 30 | 60; // grid for offered start times
   subscription: {
     plan: 'trial' | 'standard';
-    status: 'trialing' | 'active' | 'paused' | 'cancelled';
+    status: 'incomplete' | 'trialing' | 'active' | 'paused' | 'cancelled';
     trialEndsAt: string | null;
     stripeCustomerId?: string | null;
     stripeSubscriptionId?: string | null;
@@ -153,3 +153,7 @@ export interface Quote {
   depositCents: number;
   serviceNames: string[];
 }
+
+/** A business may use the dashboard only while its subscription is active (or in a Stripe trial). */
+export const isSubscribed = (b: { subscription: { status: string } }) =>
+  b.subscription.status === 'active' || b.subscription.status === 'trialing';

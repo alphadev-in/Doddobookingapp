@@ -4,7 +4,7 @@ import BillingActions from '../../components/islands/BillingActions';
 import { loadOwnerBusiness } from '../../lib/page-auth';
 export const prerender = false;
 
-const ctx = await loadOwnerBusiness(Astro);
+const ctx = await loadOwnerBusiness(Astro, { allowUnpaid: true });
 if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
 const { business, unread, isAdmin } = ctx;
 const sub = business.subscription;

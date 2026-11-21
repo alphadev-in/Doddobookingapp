@@ -8,11 +8,11 @@ export const prerender = false;
 
 /** Start a £5/month subscription in Stripe Checkout. Customers can enter a coupon code on the Stripe page. */
 export const POST: APIRoute = withErrors(async ({ request, url }) => {
-  const business = await requireBusiness(request);
+  const business = await requireBusiness(request, { allowUnpaid: true });
   const u = await sessionUser(request);
   const price = SUBSCRIPTION_PRICE_ID();
   if (!price) throw new BookingError('VALIDATION', 'Subscriptions are not set up yet');
-  if (business.subscription.status === 'active' || business.subscription.status === 'trialing') {
+  if (business.subscription.stripeSubscriptionId && (business.subscription.status === 'active' || business.subscription.status === 'trialing')) {
     throw new BookingError('VALIDATION', 'Your subscription is already active');
   }
   const origin = url.origin;
