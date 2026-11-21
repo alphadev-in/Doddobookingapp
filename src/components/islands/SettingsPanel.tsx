@@ -82,22 +82,98 @@ export default function SettingsPanel({ business, paymentsMode, origin }: Props)
 }
 
 function ProfileTab({ b, input, busy, onSave, bookingUrl }: { b: Business; input: string; busy: boolean; onSave: (p: Partial<Business>) => void; bookingUrl: string }) {
-  const [f, setF] = useState({ name: b.name, email: b.email, phone: b.phone, timezone: b.timezone, currency: b.currency });
+  const [f, setF] = useState({
+    name: b.name, about: b.about ?? '', email: b.email, phone: b.phone, website: b.website ?? '',
+    addressLine1: b.addressLine1 ?? '', addressLine2: b.addressLine2 ?? '', city: b.city ?? '', postcode: b.postcode ?? '',
+    timezone: b.timezone, currency: b.currency, logoUrl: b.logoUrl ?? '', coverUrl: b.coverUrl ?? '',
+  });
+  const [picErr, setPicErr] = useState<string | null>(null);
+  const pick = (key: 'logoUrl' | 'coverUrl', max: number) => async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setPicErr(null);
+    try {
+      const { resizeToDataUrl } = await import('./imageUpload');
+      setF((prev) => ({ ...prev, [key]: '' }));
+      const url = await resizeToDataUrl(file, max);
+      setF((prev) => ({ ...prev, [key]: url }));
+    } catch (err: any) {
+      setPicErr(err.message);
+    }
+  };
   return (
-    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onSave(f); }}>
-      <h2 className="text-lg font-semibold">Business profile & booking link</h2>
-      <div className="rounded-xl bg-slate-50 p-4">
-        <p className="text-sm font-medium">Your booking link</p>
-        <a href={`/book/${b.slug}`} className="break-all text-sm text-brand-700 hover:underline">{bookingUrl}</a>
-        <p className="mt-1 text-xs text-slate-500">The link is fixed once created so existing bookings keep working.</p>
+    <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onSave(f); }}>
+      <div>
+        <h2 className="text-lg font-semibold">Business profile</h2>
+        <p className="text-sm text-slate-600">This is what clients see on your booking page.</p>
       </div>
+
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-semibold">Pictures</legend>
+        <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
+          <div>
+            <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+              {f.logoUrl ? <img src={f.logoUrl} alt="Business logo preview" className="h-full w-full object-cover" /> : <span className="text-xs text-slate-400">No logo</span>}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <label className="inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-slate-300 px-3 text-sm font-medium hover:bg-slate-50">Upload logo
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={pick('logoUrl', 600)} />
+              </label>
+              {f.logoUrl && <button type="button" onClick={() => setF({ ...f, logoUrl: '' })} className="min-h-11 px-2 text-sm text-rose-600">Remove</button>}
+            </div>
+          </div>
+          <div>
+            <div className="flex h-28 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+              {f.coverUrl ? <img src={f.coverUrl} alt="Cover photo preview" className="h-full w-full object-cover" /> : <span className="text-xs text-slate-400">No cover photo (recommended: wide shop or team photo)</span>}
+            </div>
+            <div className="mt-2 flex gap-2">
+              <label className="inline-flex min-h-11 cursor-pointer items-center rounded-lg border border-slate-300 px-3 text-sm font-medium hover:bg-slate-50">Upload cover photo
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={pick('coverUrl', 1400)} />
+              </label>
+              {f.coverUrl && <button type="button" onClick={() => setF({ ...f, coverUrl: '' })} className="min-h-11 px-2 text-sm text-rose-600">Remove</button>}
+            </div>
+          </div>
+        </div>
+        {picErr && <p role="alert" className="text-sm text-rose-700">{picErr}</p>}
+        <p className="text-xs text-slate-500">JPEG, PNG or WebP. Pictures are resized automatically.</p>
+      </fieldset>
+
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">Business name<input className={input} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
-        <label className="block text-sm font-medium">Contact email<input type="email" className={input} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></label>
-        <label className="block text-sm font-medium">Phone<input className={input} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></label>
+        <label className="block text-sm font-medium sm:col-span-2">Business name<input className={input} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></label>
+        <label className="block text-sm font-medium sm:col-span-2">About your business<textarea rows={3} maxLength={600} className={input} value={f.about} onChange={(e) => setF({ ...f, about: e.target.value })} placeholder="Tell clients what makes you special" /></label>
+      </div>
+
+      <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold">Address</legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-medium sm:col-span-2">Address line 1<input className={input} value={f.addressLine1} onChange={(e) => setF({ ...f, addressLine1: e.target.value })} autoComplete="address-line1" /></label>
+          <label className="block text-sm font-medium sm:col-span-2">Address line 2 (optional)<input className={input} value={f.addressLine2} onChange={(e) => setF({ ...f, addressLine2: e.target.value })} autoComplete="address-line2" /></label>
+          <label className="block text-sm font-medium">Town or city<input className={input} value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} autoComplete="address-level2" /></label>
+          <label className="block text-sm font-medium">Postcode<input className={input} value={f.postcode} onChange={(e) => setF({ ...f, postcode: e.target.value })} autoComplete="postal-code" /></label>
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold">Contact</legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-medium">Email<input type="email" className={input} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="email" /></label>
+          <label className="block text-sm font-medium">Phone<input type="tel" className={input} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} autoComplete="tel" /></label>
+          <label className="block text-sm font-medium sm:col-span-2">Website (optional)<input type="url" className={input} value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} placeholder="https://" /></label>
+        </div>
+      </fieldset>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium">Timezone<input className={input} value={f.timezone} onChange={(e) => setF({ ...f, timezone: e.target.value })} /></label>
         <label className="block text-sm font-medium">Currency<input className={input} maxLength={3} value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value.toUpperCase() })} /></label>
       </div>
+
+      <div className="rounded-xl bg-slate-50 p-4">
+        <p className="text-sm font-medium">Your booking link</p>
+        <a href={`/book/${b.slug}`} className="break-all text-sm text-brand-700 hover:underline">{bookingUrl}</a>
+        <p className="mt-1 text-xs text-slate-500">The link stays the same, so existing bookings keep working.</p>
+      </div>
+
       <button disabled={busy} className="min-h-11 rounded-lg bg-brand-600 px-5 font-semibold text-white disabled:opacity-60">Save profile</button>
     </form>
   );

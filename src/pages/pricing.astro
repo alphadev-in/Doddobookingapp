@@ -1,4 +1,5 @@
 ---
+import Logo from '../components/astro/Logo.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SiteFooter from '../components/astro/SiteFooter.astro';
 export const prerender = true;
@@ -34,7 +35,7 @@ const jsonLd = {
 <BaseLayout title="Pricing: £5 a month, no contract" description="Doddo costs £5 a month with no contract. Online booking, team calendar, deposits and reminders included." canonical="/pricing" jsonLd={jsonLd}>
   <header class="border-b border-slate-200 bg-white/80 backdrop-blur">
     <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3" aria-label="Main">
-      <a href="/" class="text-xl font-extrabold tracking-tight text-brand-600">Doddo</a>
+      <Logo />
       <div class="flex items-center gap-2">
         <a href="/login" class="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100">Sign in</a>
         <a href="/signup" class="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">Get started</a>

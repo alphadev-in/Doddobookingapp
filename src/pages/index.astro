@@ -1,4 +1,5 @@
 ---
+import Logo from '../components/astro/Logo.astro';
 // Static marketing page: zero client JS, fully prerendered, indexed in the sitemap.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SiteFooter from '../components/astro/SiteFooter.astro';
@@ -33,7 +34,7 @@ const jsonLd = [
 <BaseLayout title="Online booking, calendar & deposits for salons and studios" canonical="/" jsonLd={jsonLd}>
   <header class="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
     <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3" aria-label="Main">
-      <a href="/" class="text-xl font-extrabold tracking-tight text-brand-600">Doddo</a>
+      <Logo />
       <div class="flex items-center gap-1 sm:gap-2">
         <a href="#features" class="hidden min-h-11 items-center rounded-lg px-3 text-sm font-medium text-slate-600 hover:text-slate-900 md:inline-flex">Features</a>
         <a href="#pricing" class="hidden min-h-11 items-center rounded-lg px-3 text-sm font-medium text-slate-600 hover:text-slate-900 md:inline-flex">Pricing</a>

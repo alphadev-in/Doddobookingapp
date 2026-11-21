@@ -13,6 +13,14 @@ const snap = <T>(d: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.
 // Businesses created before a setting existed get its default when read.
 const withDefaults = (b: Business): Business => ({
   ...b,
+  about: b.about ?? '',
+  website: b.website ?? '',
+  addressLine1: b.addressLine1 ?? '',
+  addressLine2: b.addressLine2 ?? '',
+  city: b.city ?? '',
+  postcode: b.postcode ?? '',
+  logoUrl: b.logoUrl ?? '',
+  coverUrl: b.coverUrl ?? '',
   paymentsEnabled: b.paymentsEnabled ?? true,
   slotIntervalMin: b.slotIntervalMin ?? 15,
   subscription: b.subscription ?? { plan: 'trial', status: 'trialing', trialEndsAt: null },

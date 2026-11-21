@@ -26,21 +26,26 @@ export default function Modal({ open, onClose, title, subtitle, children, footer
 
   useEffect(() => setMounted(true), []);
 
-  // Escape to close, lock body scroll, restore focus on close.
+  // Keep the latest onClose in a ref so re-renders of the parent never re-run this effect
+  // (re-running it stole focus from inputs on every keystroke).
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  // Escape to close, lock body scroll, move focus into the dialog on open and restore it on close.
   useEffect(() => {
     if (!open) return;
-    lastFocus.current = document.activeElement as HTMLElement | null;
+    const previous = document.activeElement as HTMLElement | null;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeRef.current(); };
     document.addEventListener('keydown', onKey);
-    panelRef.current?.focus();
+    panelRef.current?.focus({ preventScroll: true });
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
-      lastFocus.current?.focus?.();
+      previous?.focus?.({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open || !mounted) return null;
 

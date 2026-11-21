@@ -9,11 +9,41 @@
   "background_color": "#f8fafc",
   "theme_color": "#4f46e5",
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    {
+      "src": "/logo.png",
+      "sizes": "540x540",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "540x540",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    { "name": "Calendar", "url": "/dashboard/calendar", "icons": [{ "src": "/favicon.svg", "sizes": "any" }] },
-    { "name": "Notifications", "url": "/notifications", "icons": [{ "src": "/favicon.svg", "sizes": "any" }] }
+    {
+      "name": "Calendar",
+      "url": "/dashboard/calendar",
+      "icons": [
+        {
+          "src": "/logo.png",
+          "sizes": "540x540",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "url": "/notifications",
+      "icons": [
+        {
+          "src": "/logo.png",
+          "sizes": "540x540",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

@@ -51,6 +51,20 @@ export function validateBusinessSettings(b: any) {
     if (b.stripeAccountId !== null && !/^acct_[A-Za-z0-9]{6,}$/.test(String(b.stripeAccountId))) throw new BookingError('VALIDATION', 'Stripe account id should look like acct_…');
     data.stripeAccountId = b.stripeAccountId || null;
   }
+  const short = (v: unknown, field: string, max: number) => (v === undefined ? undefined : typeof v === 'string' ? v.trim().slice(0, max) : (() => { throw new BookingError('VALIDATION', `${field} is invalid`); })());
+  for (const [key, label, max] of [['about', 'About', 600], ['website', 'Website', 200], ['addressLine1', 'Address line 1', 120], ['addressLine2', 'Address line 2', 120], ['city', 'Town or city', 80], ['postcode', 'Postcode', 16]] as const) {
+    const v = short(b[key], label, max);
+    if (v !== undefined) data[key] = v;
+  }
+  if (data.website && !/^https?:\/\//.test(String(data.website))) data.website = `https://${data.website}`;
+  for (const key of ['logoUrl', 'coverUrl'] as const) {
+    if (b[key] === undefined) continue;
+    const v = String(b[key] ?? '');
+    if (v === '') { data[key] = ''; continue; }
+    if (!/^data:image\/(jpeg|png|webp);base64,/.test(v)) throw new BookingError('VALIDATION', 'Pictures must be JPEG, PNG or WebP');
+    if (v.length > 350_000) throw new BookingError('VALIDATION', 'Picture is too large after resizing. Try a simpler image.');
+    data[key] = v;
+  }
   if (b.paymentsEnabled !== undefined) data.paymentsEnabled = !!b.paymentsEnabled;
   if (b.slotIntervalMin !== undefined) {
     const v = Number(b.slotIntervalMin);

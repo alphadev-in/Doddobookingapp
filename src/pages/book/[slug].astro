@@ -10,6 +10,7 @@ if (!business) return new Response('Not found', { status: 404 });
 const services = (await listServices(business.id)).filter((s) => s.active);
 const staff = (await listStaff(business.id)).filter((s) => s.active);
 const todayKey = dateKeyInTz(Date.now(), business.timezone);
+const addressLine = [business.addressLine1, business.addressLine2, business.city, business.postcode].map((x) => (x ?? '').trim()).filter(Boolean).join(', ');
 const publicBusiness = {
   slug: business.slug, name: business.name, timezone: business.timezone, currency: business.currency,
   depositPolicy: business.depositPolicy, cancellationWindowHours: business.cancellationWindowHours,
@@ -18,14 +19,46 @@ const publicBusiness = {
 const publicServices = services.map((s) => ({ id: s.id, name: s.name, category: s.category, durationMin: s.durationMin, priceCents: s.priceCents, depositType: s.depositType, depositValue: s.depositValue }));
 const publicStaff = staff.map((s) => ({ id: s.id, name: s.name, role: s.role, color: s.color, serviceIds: s.serviceIds }));
 ---
-<BaseLayout title={`Book with ${business.name}`} description={`Book an appointment with ${business.name} online.`}>
+<BaseLayout title={`Book with ${business.name}`} description={business.about || `Book an appointment with ${business.name} online.`}>
   <main class="min-h-dvh bg-slate-50 px-4 py-6">
     <div class="mx-auto max-w-xl">
-      <header class="mb-6">
-        <p class="text-sm text-slate-500">Book online</p>
-        <h1 class="text-2xl font-bold">{business.name}</h1>
-        <p class="text-sm text-slate-500">Times shown in {business.timezone}</p>
-      </header>
+      <section class="mb-6 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200" aria-labelledby="biz-name">
+        <div class="relative h-40 w-full bg-gradient-to-br from-brand-600 to-blue-800 sm:h-52">
+          {business.coverUrl && <img src={business.coverUrl} alt="" class="absolute inset-0 h-full w-full object-cover" loading="eager" decoding="async" />}
+        </div>
+        <div class="relative px-5 pb-5 sm:px-6">
+          <div class="-mt-10 flex items-end gap-4">
+            <div class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white shadow-md ring-4 ring-white">
+              {business.logoUrl
+                ? <img src={business.logoUrl} alt={`${business.name} logo`} class="h-full w-full object-cover" loading="eager" />
+                : <span class="text-2xl font-bold text-brand-600" aria-hidden="true">{business.name.slice(0, 1).toUpperCase()}</span>}
+            </div>
+            <div class="min-w-0 pb-1">
+              <p class="text-xs font-semibold uppercase tracking-wider text-brand-600">Book online</p>
+              <h1 id="biz-name" class="truncate text-2xl font-bold tracking-tight">{business.name}</h1>
+            </div>
+          </div>
+          {business.about && <p class="mt-4 text-[15px] leading-relaxed text-slate-600">{business.about}</p>}
+          <dl class="mt-5 grid gap-3 text-sm sm:grid-cols-2">
+            {addressLine && (
+              <div class="rounded-xl bg-slate-50 p-3">
+                <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Address</dt>
+                <dd class="mt-1 text-slate-800">{addressLine}</dd>
+                <dd><a class="mt-1 inline-flex min-h-11 items-center font-semibold text-brand-700 hover:underline" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressLine)}`} target="_blank" rel="noopener">Open in Maps ↗</a></dd>
+              </div>
+            )}
+            <div class="rounded-xl bg-slate-50 p-3">
+              <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Contact</dt>
+              <dd class="mt-1 flex flex-col">
+                {business.phone && <a class="inline-flex min-h-11 items-center text-brand-700 hover:underline" href={`tel:${business.phone.replace(/\s/g, '')}`}>{business.phone}</a>}
+                {business.email && <a class="inline-flex min-h-11 items-center break-all text-brand-700 hover:underline" href={`mailto:${business.email}`}>{business.email}</a>}
+                {business.website && <a class="inline-flex min-h-11 items-center break-all text-brand-700 hover:underline" href={business.website} target="_blank" rel="noopener nofollow">{business.website.replace(/^https?:\/\//, '')} ↗</a>}
+              </dd>
+            </div>
+          </dl>
+          <p class="mt-4 text-xs text-slate-500">Times shown in {business.timezone}</p>
+        </div>
+      </section>
       <BookingFlow business={publicBusiness} services={publicServices} staff={publicStaff} todayKey={todayKey} client:load />
     </div>
   </main>

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Logo from '../components/astro/Logo.astro';
 import LogoutButton from '../components/islands/LogoutButton';
 import { SESSION_COOKIE, verifySessionCookie } from '../lib/session';
 import { getUser, listAppointmentsForEmail, countUnread, getBusinessById } from '../lib/repo';
@@ -33,7 +34,7 @@ const statusLabel: Record<string, string> = { confirmed: 'Confirmed', completed:
   <main class="min-h-dvh bg-slate-50 pb-16">
     <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div class="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
-        <a href="/" class="text-xl font-extrabold tracking-tight text-brand-600">Doddo</a>
+        <Logo />
         <div class="flex items-center gap-2">
           <a href="/notifications" aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`} class="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white hover:bg-slate-50">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 16v-5a6 6 0 10-12 0v5l-2 2h16z" /><path d="M10 21a2 2 0 004 0" /></svg>

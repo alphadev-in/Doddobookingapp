@@ -103,21 +103,21 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Toolbar: stacks on phones so nothing overflows the viewport */}
+      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
         <div className="flex rounded-lg border border-slate-300 bg-white p-1" role="tablist" aria-label="View">
           {(['day', 'week'] as const).map((v) => (
             <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)}
               className={`min-h-11 rounded-md px-4 text-sm font-medium capitalize ${view === v ? 'bg-brand-600 text-white' : 'text-slate-600'}`}>{v}</button>
           ))}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-between gap-1 sm:justify-start">
           <button type="button" aria-label="Previous" className="h-11 w-11 rounded-lg border border-slate-300 bg-white" onClick={() => go(addDaysToDateKey(date, view === 'day' ? -1 : -7), 'prev')}>‹</button>
           <button type="button" className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium" onClick={() => go(todayKey, todayKey < date ? 'prev' : 'next')}>Today</button>
           <button type="button" aria-label="Next" className="h-11 w-11 rounded-lg border border-slate-300 bg-white" onClick={() => go(addDaysToDateKey(date, view === 'day' ? 1 : 7), 'next')}>›</button>
         </div>
         <input type="date" aria-label="Jump to date" value={date} onChange={(e) => e.target.value && go(e.target.value, e.target.value < date ? 'prev' : 'next')}
-          className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm" />
+          className="h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-sm sm:w-auto" />
         {view === 'week' && (
           <select aria-label="Team member" value={staffId} onChange={(e) => setStaffId(e.target.value)} className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm">
             {activeStaff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -132,10 +132,29 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
 
       {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
 
+      {view === 'week' && (
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden" aria-label="Jump to day">
+          {days.map((d) => {
+            const dt = new Date(`${d}T12:00:00Z`);
+            const isToday = d === todayKey;
+            return (
+              <button key={d} type="button" onClick={() => {
+                const col = document.querySelector<HTMLElement>(`#cal-grid [data-day="${d}"]`);
+                col?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+              }}
+                className={`flex min-h-11 min-w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-xl border px-2 text-xs font-semibold tabular-nums ${isToday ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700'}`}>
+                <span>{new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' }).format(dt)}</span>
+                <span className="text-sm">{dt.getUTCDate()}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {activeStaff.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600">Add a team member to see their calendar.</div>
       ) : (
-        <div key={date + view} className={`relative overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200 snap-x snap-mandatory ${dir === 'next' ? 'slide-next' : 'slide-prev'}`}>
+        <div id="cal-grid" key={date + view} className={`relative overflow-x-auto rounded-xl bg-white shadow-sm ring-1 ring-slate-200 ${dir === 'next' ? 'slide-next' : 'slide-prev'}`}>
           <div className="flex" style={{ minWidth: 56 + columns.length * colW }}>
             {/* Time rail */}
             <div className="sticky left-0 z-20 w-14 shrink-0 bg-white border-r border-slate-200" style={{ height: totalH + 40 }}>
@@ -157,9 +176,9 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
                 : col.name;
               const list = apptsFor(dayKey, sid);
               return (
-                <div key={isDay ? dayKey : col.id} className="snap-start shrink-0 border-r border-slate-200 last:border-r-0" style={{ width: colW }}>
+                <div key={isDay ? dayKey : col.id} data-day={isDay ? dayKey : undefined} className="shrink-0 border-r border-slate-200 last:border-r-0" style={{ width: colW }}>
                   <div className="flex h-10 items-center gap-2 px-2 border-b border-slate-200 bg-slate-50" style={{ borderTop: `3px solid ${isDay ? colStaff?.color ?? '#6366f1' : col.color}` }}>
-                    <span className="truncate text-xs font-semibold">{label}</span>
+                    <span className={`whitespace-nowrap text-xs font-semibold tabular-nums ${isDay && dayKey === todayKey ? 'rounded-full bg-brand-600 px-2 py-0.5 text-white' : ''}`}>{label}</span>
                   </div>
                   <div className="relative cursor-cell" style={{ height: totalH + 40 }}
                     onClick={(e) => onGridClick(e, dayKey, sid)}
@@ -210,7 +229,7 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
 
       {create && (
         <CreateDrawer state={create} onClose={() => setCreate(null)} services={services} staff={activeStaff} timezone={timezone} currency={currency}
-          onSaved={() => { setCreate(null); load(); }} />
+          onSaved={(savedDay) => { setCreate(null); if (savedDay === date) load(); else setDate(savedDay); }} />
       )}
       {selected && (
         <DetailDrawer appt={selected} timezone={timezone} currency={currency} services={services} staffName={staffName}
@@ -222,7 +241,7 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
 
 function CreateDrawer({ state, onClose, services, staff, timezone, currency, onSaved }: {
   state: { staffId: string | null; startHHmm: string; date: string; kind: 'walkin' | 'booking' | 'block' };
-  onClose: () => void; services: Service[]; staff: Staff[]; timezone: string; currency: string; onSaved: () => void;
+  onClose: () => void; services: Service[]; staff: Staff[]; timezone: string; currency: string; onSaved: (day: string) => void;
 }) {
   const [kind, setKind] = useState(state.kind);
   const [date, setDate] = useState(state.date);
@@ -247,6 +266,11 @@ function CreateDrawer({ state, onClose, services, staff, timezone, currency, onS
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (kind !== 'block') {
+      if (name.trim().length < 2) return setError('Enter the client\'s name (at least 2 letters).');
+      if (serviceIds.length === 0) return setError('Choose at least one service.');
+      if (!sid) return setError('Choose a team member.');
+    }
     setBusy(true);
     try {
       if (kind === 'block') {
@@ -254,7 +278,7 @@ function CreateDrawer({ state, onClose, services, staff, timezone, currency, onS
       } else {
         await api('/api/appointments', { body: { kind, staffId: sid, serviceIds, startAt: toIso(date, time, timezone), client: { name, phone, email }, notes } });
       }
-      onSaved();
+      onSaved(date);
     } catch (err: any) {
       setError(err.message);
       setBusy(false);
@@ -268,7 +292,8 @@ function CreateDrawer({ state, onClose, services, staff, timezone, currency, onS
         <button form="create-form" type="submit" disabled={busy}
           className="w-full rounded-lg bg-brand-600 px-4 py-3 font-semibold text-white disabled:opacity-60">{busy ? 'Saving…' : kind === 'block' ? 'Block time' : 'Save appointment'}</button>
       }>
-      <form id="create-form" onSubmit={submit} className="space-y-4">
+      {error && <p role="alert" className="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</p>}
+      <form id="create-form" noValidate onSubmit={submit} className="space-y-4">
         <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Type">
           {([['walkin', 'Walk-in'], ['booking', 'Phone'], ['block', 'Block']] as const).map(([k, label]) => (
             <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => setKind(k)}

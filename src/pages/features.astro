@@ -1,4 +1,5 @@
 ---
+import Logo from '../components/astro/Logo.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import SiteFooter from '../components/astro/SiteFooter.astro';
 export const prerender = true;
@@ -41,7 +42,7 @@ const jsonLd = { '@context': 'https://schema.org', '@type': 'WebPage', name: 'Do
 <BaseLayout title="Features: booking, calendar, clients & deposits" description="Everything in Doddo: online booking, unlimited team members, calendar, client records, deposits, reminders and an app for your phone." canonical="/features" jsonLd={jsonLd}>
   <header class="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-md">
     <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3" aria-label="Main">
-      <a href="/" class="font-logo text-xl font-bold tracking-tight text-brand-600">Doddo</a>
+      <Logo />
       <div class="flex items-center gap-1 sm:gap-2">
         <a href="/pricing" class="hidden min-h-11 items-center rounded-lg px-3 text-sm font-medium text-slate-600 hover:text-slate-900 md:inline-flex">Pricing</a>
         <a href="/login" class="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-slate-700 hover:bg-slate-100">Sign in</a>

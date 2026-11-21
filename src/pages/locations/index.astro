@@ -1,4 +1,5 @@
 ---
+import Logo from '../../components/astro/Logo.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import SiteFooter from '../../components/astro/SiteFooter.astro';
 import { COUNTRIES, SERVICES, slugify } from '../../lib/seo-data';
@@ -7,7 +8,7 @@ export const prerender = true;
 <BaseLayout title="Locations: online booking by city" description="Find online booking for barbers, salons, clinics and studios in cities across the UK, US, Canada, Australia and Ireland." canonical="/locations">
   <header class="border-b border-slate-200 bg-white/85 backdrop-blur">
     <nav class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3" aria-label="Main">
-      <a href="/" class="font-logo text-xl font-bold tracking-tight text-brand-600">Doddo</a>
+      <Logo />
       <a href="/signup" class="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">Start your business</a>
     </nav>
   </header>

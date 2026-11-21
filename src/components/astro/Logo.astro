@@ -1,0 +1,9 @@
+---
+// Doddo logo. Use variant="dark" on dark backgrounds (white logo), "light" on white/light (coloured logo).
+interface Props { variant?: 'light' | 'dark'; class?: string; }
+const { variant = 'light', class: className = '' } = Astro.props;
+const src = variant === 'dark' ? '/DoddoW.png' : '/Doddo.png';
+---
+<a href="/" aria-label="Doddo home" class={`inline-flex items-center ${className}`}>
+  <img src={src} alt="Doddo" width="203" height="91" class="h-8 w-auto sm:h-9" decoding="async" />
+</a>

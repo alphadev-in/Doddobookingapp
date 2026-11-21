@@ -25,6 +25,14 @@ export interface Business {
     cancellation: boolean;
   };
   templates: { confirmation: string; reminder24h: string; cancellation: string };
+  about: string; // short description shown on the booking page
+  website: string;
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  postcode: string;
+  logoUrl: string; // data: URL (resized JPEG/PNG/WebP), '' when not set
+  coverUrl: string; // data: URL, '' when not set
   paymentsEnabled: boolean; // false = no deposit/payment step in the public booking flow
   slotIntervalMin: 5 | 10 | 15 | 20 | 30 | 60; // grid for offered start times
   subscription: { plan: 'trial' | 'standard'; status: 'trialing' | 'active' | 'paused' | 'cancelled'; trialEndsAt: string | null };
