@@ -17,7 +17,7 @@ export default function ChatBooking({ business, services, staff, todayKey }: Pro
   const [text, setText] = useState('');
   const [data, setData] = useState<{ name?: string; service?: PublicService; staffId?: string; day?: string; slot?: Slot; contact?: string; bookingId?: string; manageToken?: string }>({});
   const [slots, setSlots] = useState<Slot[] | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const bookable = services.filter((s) => s.depositType === 'none' || !business.paymentsEnabled);
   const eligible = (serviceId: string) => staff.filter((m) => m.serviceIds.includes(serviceId));
@@ -34,7 +34,11 @@ export default function ChatBooking({ business, services, staff, todayKey }: Pro
   function me(t: string) { setMsgs((m) => [...m, { from: 'me', text: t }]); }
 
   useEffect(() => { say(['Hi! I can book your appointment in a few quick questions.', "What's your name?"]); }, []);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [msgs, step]);
+  // Scroll only the message list (not the page) so the answer buttons stay in place.
+  useEffect(() => {
+    const el = listRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [msgs, busy]);
 
   function answerName(name: string) {
     const clean = name.trim();
@@ -139,18 +143,17 @@ export default function ChatBooking({ business, services, staff, todayKey }: Pro
   const inputCls = 'min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-base outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-500/15';
 
   return (
-    <section className="flex min-h-[70dvh] flex-col rounded-3xl bg-white shadow-sm ring-1 ring-slate-200" aria-label="Guided booking">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4 sm:p-6" role="log" aria-live="polite">
+    <section className="flex h-[min(74dvh,640px)] min-h-[420px] flex-col overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-200" aria-label="Guided booking">
+      <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-6" role="log" aria-live="polite">
         {msgs.map((m, i) => (
           <div key={i} className={`anim-fade-up flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}>
             <p className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed ${m.from === 'me' ? 'rounded-br-md bg-brand-600 text-white' : 'rounded-bl-md bg-slate-100 text-slate-800'}`}>{m.text}</p>
           </div>
         ))}
         {busy && <div className="flex justify-start"><span className="rounded-2xl rounded-bl-md bg-slate-100 px-4 py-3 text-slate-500" aria-label="Assistant is typing"><span className="inline-flex gap-1"><i className="h-2 w-2 animate-bounce rounded-full bg-slate-400" /><i className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:.15s]" /><i className="h-2 w-2 animate-bounce rounded-full bg-slate-400 [animation-delay:.3s]" /></span></span></div>}
-        <div ref={endRef} />
       </div>
 
-      <div className="border-t border-slate-100 p-4 sm:p-5">
+      <div className="max-h-[45%] shrink-0 overflow-y-auto overscroll-contain border-t border-slate-100 bg-white p-4 sm:p-5">
         {!busy && step === 'name' && <NameInput value={text} setValue={setText} onSubmit={(v) => { answerName(v); setText(''); }} cls={inputCls} />}
         {!busy && step === 'contact' && <NameInput value={text} setValue={setText} onSubmit={(v) => { answerContact(v); setText(''); }} cls={inputCls} placeholder="Phone or email" />}
 

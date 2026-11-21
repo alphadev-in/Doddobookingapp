@@ -1,11 +1,14 @@
 // Minimal service worker: caches the static app shell for fast repeat loads and an offline page.
 // Dashboard, booking and API responses are never cached (they contain personal data).
-const CACHE = 'doddo-shell-v2';
+const CACHE = 'doddo-shell-v3';
 const SHELL = ['/', '/favicon.svg', '/manifest.webmanifest'];
 const OFFLINE = '/offline.html';
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll([...SHELL, OFFLINE])).then(() => self.skipWaiting()));
+  // Cache each file on its own, so one missing file cannot stop the worker from installing.
+  e.waitUntil(caches.open(CACHE)
+    .then((c) => Promise.allSettled([...SHELL, OFFLINE].map((url) => c.add(url))))
+    .then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));

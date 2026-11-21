@@ -2,7 +2,7 @@
 // Server-only (uses Firestore). Pure slot math lives in availability.ts.
 import type { Appointment, Business, Quote, Service, Staff } from './types';
 import { getOpenSlots, type BusyInterval } from './availability';
-import { dateKeyInTz } from './time';
+import { dateKeyInTz, timeInTz } from './time';
 import {
   getBusinessById, getServices, listAppointments, listStaff, findClient, saveClient, recomputeClientStats,
   updateAppointment, findAppointmentByIntent, addNotification,
@@ -156,7 +156,7 @@ export async function createBooking(input: CreateBookingInput): Promise<Appointm
       business, staff: staffList, appts, serviceIds: input.serviceIds, staffId: input.staffId,
       startAt: input.startAt, durationMin: quote.durationMin, bufferMin: quote.bufferMin, enforceNotice: input.source === 'online',
     });
-    if (!staff) throw new BookingError('CONFLICT', 'That time is no longer available. Please choose another slot.', 409);
+    if (!staff) throw new BookingError('CONFLICT', conflictMessage(business, staffList, appts, input.staffId, input.startAt, quote.durationMin, quote.bufferMin), 409);
     const row: Appointment = {
       id: apptRef.id, businessId: business.id, kind: input.kind ?? 'booking', staffId: staff.id, clientId: client.id,
       serviceIds: input.serviceIds, title: quote.serviceNames.join(' + '), startAt: input.startAt, endAt, bufferMin: quote.bufferMin,
@@ -229,6 +229,26 @@ export async function reschedule(appt: Appointment, newStartAt: string, enforceN
     tx.set(ref, next);
     return next;
   });
+}
+
+
+/** A clear reason for a 409: names the booking or block that clashes, or says nobody is free. */
+function conflictMessage(business: Business, staff: Staff[], appts: Appointment[], staffId: string | 'any', startAt: string, durationMin: number, bufferMin: number): string {
+  const start = Date.parse(startAt);
+  const end = start + (durationMin + bufferMin) * MIN;
+  const hhmm = (iso: string) => timeInTz(iso, business.timezone);
+  const clash = (a: Appointment, forStaff: string | null) =>
+    a.status !== 'cancelled' && (a.staffId === forStaff || (a.kind === 'block' && a.staffId === null)) &&
+    start < Date.parse(a.endAt) + a.bufferMin * MIN && Date.parse(a.startAt) < end;
+  if (staffId === 'any') return `No team member is free at ${hhmm(startAt)}. Pick another time or a specific team member.`;
+  const member = staff.find((m) => m.id === staffId);
+  const name = member?.name ?? 'This team member';
+  const other = appts.find((a) => clash(a, staffId));
+  if (other) {
+    const what = other.kind === 'block' ? `blocked (${other.title})` : `booked with ${other.clientName || 'a client'} (${other.title})`;
+    return `${name} is ${what} ${hhmm(other.startAt)}–${hhmm(other.endAt)}. Choose another time.`;
+  }
+  return `${name} is not available at ${hhmm(startAt)}. Check their working hours or the buffer before the previous booking.`;
 }
 
 /** In-app notifications for the business owner and the customer (email-matched). */

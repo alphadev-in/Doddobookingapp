@@ -41,7 +41,7 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
   const [date, setDate] = useState(todayKey);
   const [dir, setDir] = useState<'next' | 'prev'>('next');
   const go = (next: string, d: 'next' | 'prev') => { setDir(d); setDate(next); };
-  const [staffId, setStaffId] = useState<string>('');
+  const [teamFilter, setTeamFilter] = useState<string>('all'); // 'all' or a staff id
   const [services, setServices] = useState<Service[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [appts, setAppts] = useState<Appointment[]>([]);
@@ -52,7 +52,8 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
 
   const days = useMemo(() => (view === 'day' ? [date] : Array.from({ length: 7 }, (_, i) => addDaysToDateKey(date, i))), [view, date]);
   const activeStaff = useMemo(() => staff.filter((s) => s.active), [staff]);
-  const columns = view === 'day' ? activeStaff : activeStaff.filter((s) => !staffId || s.id === staffId);
+  const visibleStaff = useMemo(() => activeStaff.filter((s) => teamFilter === 'all' || s.id === teamFilter), [activeStaff, teamFilter]);
+  const columns = visibleStaff;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,7 +75,6 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
       .then(([s, st]) => {
         setServices(s.services);
         setStaff(st.staff);
-        if (!staffId && st.staff[0]) setStaffId(st.staff.find((x) => x.active)?.id ?? st.staff[0].id);
       })
       .catch((e) => setError(e.message));
     // Quick action "+ New Appointment" from the dashboard opens the create drawer.
@@ -87,15 +87,31 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
   const totalH = (END_H - START_H) * 60 * PX_PER_MIN;
   const hours = Array.from({ length: END_H - START_H }, (_, i) => START_H + i);
 
-  const apptsFor = (day: string, sid: string | null) =>
-    appts.filter((a) => dateKeyInTz(a.startAt, timezone) === day && (a.kind === 'block' ? a.staffId === null || a.staffId === sid : a.staffId === sid));
+  // filter: 'all' = everyone, otherwise one staff member (their bookings plus team-wide blocks)
+  const apptsFor = (day: string, filter: string) =>
+    appts.filter((a) => dateKeyInTz(a.startAt, timezone) === day && (filter === 'all' || a.staffId === filter || (a.kind === 'block' && a.staffId === null)));
+
+  // Lay out overlapping appointments side by side inside one column (greedy lanes).
+  function layoutLanes<T extends { startAt: string; endAt: string }>(list: T[]) {
+    const sorted = [...list].sort((a, b) => a.startAt.localeCompare(b.startAt));
+    const laneEnds: number[] = [];
+    const placed = sorted.map((a) => {
+      const start = Date.parse(a.startAt);
+      let lane = laneEnds.findIndex((end) => end <= start);
+      if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
+      laneEnds[lane] = Date.parse(a.endAt);
+      return { a, lane };
+    });
+    const lanes = Math.max(1, laneEnds.length);
+    return new Map(placed.map((p) => [p.a, { lane: p.lane, lanes }]));
+  }
 
   function onGridClick(e: React.MouseEvent<HTMLDivElement>, day: string, sid: string | null) {
     const rect = e.currentTarget.getBoundingClientRect();
     const mins = Math.round((e.clientY - rect.top) / PX_PER_MIN / SNAP) * SNAP + START_H * 60;
     const hh = String(Math.floor(mins / 60)).padStart(2, '0');
     const mm = String(mins % 60).padStart(2, '0');
-    setCreate({ staffId: sid, date: day, startHHmm: `${hh}:${mm}`, kind: 'walkin' });
+    setCreate({ staffId: sid === 'all' ? null : sid, date: day, startHHmm: `${hh}:${mm}`, kind: 'walkin' });
   }
 
   const staffName = (id: string | null) => staff.find((s) => s.id === id)?.name ?? 'Whole business';
@@ -118,11 +134,6 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
         </div>
         <input type="date" aria-label="Jump to date" value={date} onChange={(e) => e.target.value && go(e.target.value, e.target.value < date ? 'prev' : 'next')}
           className="h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-sm sm:w-auto" />
-        {view === 'week' && (
-          <select aria-label="Team member" value={staffId} onChange={(e) => setStaffId(e.target.value)} className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm">
-            {activeStaff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        )}
         <button type="button" onClick={() => setCreate({ staffId: null, date: todayKey, startHHmm: '10:00', kind: 'block' })}
           className="h-11 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium">+ Block time</button>
         <button type="button" onClick={() => setCreate({ staffId: activeStaff[0]?.id ?? null, date, startHHmm: '10:00', kind: 'walkin' })}
@@ -131,6 +142,17 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
       </div>
 
       {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+
+      {/* Team filter: everyone, or one team member */}
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label="Filter by team member">
+        {[{ id: 'all', name: 'Everyone', color: '#1D4ED8' }, ...activeStaff.map((s) => ({ id: s.id, name: s.name, color: s.color }))].map((t) => (
+          <button key={t.id} type="button" aria-pressed={teamFilter === t.id} onClick={() => setTeamFilter(t.id)}
+            className={`flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-semibold ${teamFilter === t.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-300 bg-white text-slate-700'}`}>
+            {t.id !== 'all' && <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.color }} aria-hidden="true" />}
+            {t.name}
+          </button>
+        ))}
+      </div>
 
       {view === 'week' && (
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden" aria-label="Jump to day">
@@ -169,12 +191,14 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
             {(view === 'day' ? columns : days.map((d) => ({ id: d, label: d }))).map((col: any) => {
               const isDay = view === 'week';
               const dayKey = isDay ? col.id : date;
-              const sid = isDay ? staffId : col.id;
-              const colStaff = isDay ? staff.find((s) => s.id === staffId) : col;
+              const filter = isDay ? teamFilter : col.id;
+              const sid: string | null = filter === 'all' ? null : filter;
+              const colStaff = isDay ? staff.find((s) => s.id === teamFilter) : col;
               const label = isDay
                 ? new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: timezone }).format(new Date(`${dayKey}T12:00:00Z`))
                 : col.name;
-              const list = apptsFor(dayKey, sid);
+              const list = apptsFor(dayKey, filter);
+              const lanes = layoutLanes(list);
               return (
                 <div key={isDay ? dayKey : col.id} data-day={isDay ? dayKey : undefined} className="shrink-0 border-r border-slate-200 last:border-r-0" style={{ width: colW }}>
                   <div className="flex h-10 items-center gap-2 px-2 border-b border-slate-200 bg-slate-50" style={{ borderTop: `3px solid ${isDay ? colStaff?.color ?? '#6366f1' : col.color}` }}>
@@ -190,6 +214,8 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
                       ))}
                     </div>
                     {list.map((a) => {
+                      const lane = lanes.get(a) ?? { lane: 0, lanes: 1 };
+                      const laneStyle = { left: `calc(${(lane.lane * 100) / lane.lanes}% + 4px)`, width: `calc(${100 / lane.lanes}% - 8px)` };
                       const startM = minutesOfDay(hhmmOf(a.startAt, timezone));
                       const endM = minutesOfDay(hhmmOf(a.endAt, timezone)) + (dateKeyInTz(a.endAt, timezone) !== dayKey ? 24 * 60 : 0);
                       const top = 40 + (startM - START_H * 60) * PX_PER_MIN;
@@ -199,8 +225,8 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
                       if (a.kind === 'block') {
                         return (
                           <button key={a.id} type="button" onClick={(e) => { e.stopPropagation(); setSelected(a); }}
-                            className="absolute left-1 right-1 z-10 overflow-hidden rounded-md border border-slate-300 p-1.5 text-left text-xs text-slate-700"
-                            style={{ top, height, backgroundImage: 'repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px)' }}>
+                            className="absolute z-10 overflow-hidden rounded-md border border-slate-300 p-1.5 text-left text-xs text-slate-700"
+                            style={{ top, height, ...laneStyle, backgroundImage: 'repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 6px,#e2e8f0 6px,#e2e8f0 12px)' }}>
                             <span className="font-medium">{a.title}</span>
                             {a.staffId === null && <span className="block text-[10px] text-slate-500">All team</span>}
                           </button>
@@ -208,8 +234,8 @@ export default function Calendar({ timezone, currency, todayKey }: Props) {
                       }
                       return (
                         <button key={a.id} type="button" onClick={(e) => { e.stopPropagation(); setSelected(a); }}
-                          className={`absolute left-1 right-1 z-10 overflow-hidden rounded-md border border-slate-200 p-1.5 text-left text-xs shadow-sm hover:shadow ${STATUS_STYLE[a.status]}`}
-                          style={{ top, height, borderLeft: `4px solid ${accent}` }}>
+                          className={`absolute z-10 overflow-hidden rounded-md border border-slate-200 p-1.5 text-left text-xs shadow-sm hover:shadow ${STATUS_STYLE[a.status]}`}
+                          style={{ top, height, ...laneStyle, borderLeft: `4px solid ${accent}` }}>
                           <span className="block text-[10px] text-slate-500">{hhmmOf(a.startAt, timezone)}–{hhmmOf(a.endAt, timezone)}</span>
                           <span className="block truncate font-semibold">{a.clientName || 'Walk-in'}</span>
                           {height > 44 && <span className="block truncate text-slate-600">{a.title}</span>}
