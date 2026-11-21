@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Logo from '../components/astro/Logo.astro';
 import LogoutButton from '../components/islands/LogoutButton';
+import PushToggle from '../components/islands/PushToggle';
 import { SESSION_COOKIE, verifySessionCookie } from '../lib/session';
 import { getUser, listAppointmentsForEmail, countUnread, getBusinessById } from '../lib/repo';
 import { adminAuth } from '../lib/firebase-admin';
@@ -52,6 +53,7 @@ const statusLabel: Record<string, string> = { confirmed: 'Confirmed', completed:
         <p class="text-sm text-slate-500">{email}</p>
       </section>
 
+      <div><PushToggle client:load /></div>
       <section aria-labelledby="up">
         <h2 id="up" class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Upcoming</h2>
         {up.length === 0 ? (

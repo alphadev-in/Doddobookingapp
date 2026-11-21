@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 import NotificationList from '../components/islands/NotificationList';
+import PushToggle from '../components/islands/PushToggle';
 import { SESSION_COOKIE, verifySessionCookie, isAdminEmail } from '../lib/session';
 import { getBusinessByOwner, getUser, listNotifications } from '../lib/repo';
 import { adminAuth } from '../lib/firebase-admin';
@@ -24,12 +25,15 @@ const initial = rows.map((n) => ({ id: n.id, title: n.title, body: n.body, href:
       <div class="mx-auto max-w-xl">
         <a href="/account" class="text-sm text-brand-700">← My bookings</a>
         <h1 class="mt-3 mb-5 text-2xl font-bold">Notifications</h1>
-        <NotificationList initial={initial} client:load />
+        <div class="mb-4"><PushToggle client:load /></div>
+        <div class="mb-4"><PushToggle client:load /></div>
+    <NotificationList initial={initial} client:load />
       </div>
     </main>
   </BaseLayout>
 ) : (
   <DashboardLayout title="Notifications" active="overview" businessName={business!.name} bookingSlug={business!.slug} unread={unread} isAdmin={isAdminEmail(email)}>
+    <div class="mb-4"><PushToggle client:load /></div>
     <NotificationList initial={initial} client:load />
   </DashboardLayout>
 )}

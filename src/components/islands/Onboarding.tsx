@@ -48,7 +48,7 @@ export default function Onboarding({ defaultTimezone, defaultCurrency }: Props) 
       for (const m of team) {
         await api('/api/staff', { body: { name: m.name, role: m.role, color: m.color, active: true, serviceIds: created.map((c) => c.id), hours } });
       }
-      window.location.href = '/dashboard';
+      window.location.href = '/dashboard/billing?welcome=1';
     } catch (e: any) {
       setError(e.message);
       setBusy(false);

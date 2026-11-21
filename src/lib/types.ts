@@ -33,9 +33,17 @@ export interface Business {
   postcode: string;
   logoUrl: string; // data: URL (resized JPEG/PNG/WebP), '' when not set
   coverUrl: string; // data: URL, '' when not set
+  bookingMode: 'form' | 'chat'; // online booking style: standard form, or guided question-by-question chat
   paymentsEnabled: boolean; // false = no deposit/payment step in the public booking flow
   slotIntervalMin: 5 | 10 | 15 | 20 | 30 | 60; // grid for offered start times
-  subscription: { plan: 'trial' | 'standard'; status: 'trialing' | 'active' | 'paused' | 'cancelled'; trialEndsAt: string | null };
+  subscription: {
+    plan: 'trial' | 'standard';
+    status: 'trialing' | 'active' | 'paused' | 'cancelled';
+    trialEndsAt: string | null;
+    stripeCustomerId?: string | null;
+    stripeSubscriptionId?: string | null;
+    currentPeriodEnd?: string | null;
+  };
   createdAt: string;
 }
 
@@ -57,6 +65,15 @@ export interface Notification {
   body: string;
   href: string;
   read: boolean;
+  createdAt: string;
+}
+
+export interface PushSubscriptionRow {
+  id: string;
+  businessId?: string; // business owner's devices
+  customerEmail?: string; // customer's devices (lowercase)
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
   createdAt: string;
 }
 

@@ -10,6 +10,53 @@ interface AdminUser {
 const PLANS = ['trial', 'standard'] as const;
 const STATUSES = ['trialing', 'active', 'paused', 'cancelled'] as const;
 
+function CouponSection() {
+  const [codes, setCodes] = useState<any[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [form, setForm] = useState({ code: '', kind: 'percent', value: '20', duration: 'once', months: '3', maxRedemptions: '', expiresAt: '' });
+  const load = () => api<any>('/api/admin/coupons').then((d) => setCodes(d.codes)).catch((e) => setErr(e.message));
+  useEffect(() => { load(); }, []);
+  async function create(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    try {
+      await api('/api/admin/coupons', { body: { code: form.code, percentOff: form.kind === 'percent' ? form.value : undefined, amountOffPounds: form.kind === 'amount' ? form.value : undefined, duration: form.duration, months: form.months, maxRedemptions: form.maxRedemptions || undefined, expiresAt: form.expiresAt || undefined } });
+      setForm({ ...form, code: '' });
+      await load();
+    } catch (e: any) { setErr(e.message); }
+  }
+  async function toggle(id: string, active: boolean) {
+    await api(`/api/admin/coupons/${id}`, { method: 'PATCH', body: { active: !active } }).catch((e) => setErr(e.message));
+    await load();
+  }
+  const input = 'min-h-11 w-full rounded-lg border border-slate-300 px-3 text-base';
+  return (
+    <section className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+      <div className="border-b border-slate-200 p-4"><h2 className="font-semibold">Coupons</h2><p className="text-sm text-slate-500">Create a code and give it to a customer. They enter it on the Stripe checkout page.</p></div>
+      <form onSubmit={create} className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="text-sm font-medium">Code<input className={input} placeholder="WELCOME20" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required /></label>
+        <label className="text-sm font-medium">Discount<select className={input} value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}><option value="percent">% off</option><option value="amount">£ off</option></select></label>
+        <label className="text-sm font-medium">Amount<input type="number" min="1" className={input} value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} required /></label>
+        <label className="text-sm font-medium">Applies to<select className={input} value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })}><option value="once">First payment</option><option value="repeating">Several months</option><option value="forever">Every payment</option></select></label>
+        {form.duration === 'repeating' && <label className="text-sm font-medium">Months<input type="number" min="1" max="36" className={input} value={form.months} onChange={(e) => setForm({ ...form, months: e.target.value })} /></label>}
+        <label className="text-sm font-medium">Max uses (optional)<input type="number" min="1" className={input} value={form.maxRedemptions} onChange={(e) => setForm({ ...form, maxRedemptions: e.target.value })} /></label>
+        <label className="text-sm font-medium">Expires (optional)<input type="date" className={input} value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} /></label>
+        <div className="flex items-end"><button className="min-h-11 w-full rounded-lg bg-brand-600 font-semibold text-white">Create coupon</button></div>
+      </form>
+      {err && <p role="alert" className="px-4 pb-3 text-sm text-rose-700">{err}</p>}
+      <ul className="divide-y divide-slate-200 border-t border-slate-200">
+        {(codes ?? []).map((c) => (
+          <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+            <div><p className="font-mono font-semibold">{c.code}</p><p className="text-slate-500">{c.off}{c.duration ? ` · ${c.duration}` : ''} · used {c.timesRedeemed}{c.maxRedemptions ? ` of ${c.maxRedemptions}` : ''}</p></div>
+            <button type="button" onClick={() => toggle(c.id, c.active)} className={`min-h-11 rounded-lg px-4 font-semibold ${c.active ? 'border border-rose-300 text-rose-700' : 'bg-emerald-600 text-white'}`}>{c.active ? 'Turn off' : 'Turn on'}</button>
+          </li>
+        ))}
+        {codes && codes.length === 0 && <li className="p-4 text-sm text-slate-500">No coupons yet.</li>}
+      </ul>
+    </section>
+  );
+}
+
 export default function AdminPanel() {
   const [data, setData] = useState<{ users: AdminUser[]; totals: Record<string, number> } | null>(null);
   const [q, setQ] = useState('');
@@ -52,6 +99,8 @@ export default function AdminPanel() {
       </section>
 
       {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+
+      <CouponSection />
 
       <section className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4">

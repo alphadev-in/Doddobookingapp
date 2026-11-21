@@ -241,9 +241,23 @@ function NotificationsTab({ b, input, busy, onSave }: { b: Business; input: stri
 function BookingTab({ b, busy, onSave }: { b: Business; busy: boolean; onSave: (p: Partial<Business>) => void }) {
   const [paymentsEnabled, setPaymentsEnabled] = useState(b.paymentsEnabled ?? true);
   const [slotIntervalMin, setSlotIntervalMin] = useState<number>(b.slotIntervalMin ?? 15);
+  const [bookingMode, setBookingMode] = useState<'form' | 'chat'>(b.bookingMode ?? 'form');
   return (
-    <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onSave({ paymentsEnabled, slotIntervalMin } as any); }}>
+    <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); onSave({ paymentsEnabled, slotIntervalMin, bookingMode } as any); }}>
       <h2 className="text-lg font-semibold">Online booking</h2>
+
+      <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
+        <legend className="px-1 text-sm font-semibold">How clients book</legend>
+        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Booking style">
+          {([['form', 'Form', 'One page with every choice. Best for deposits.'], ['chat', 'Guided chat', 'Asks one question at a time: name, service, team, day, time.']] as const).map(([v, t, d]) => (
+            <button key={v} type="button" role="radio" aria-checked={bookingMode === v} onClick={() => setBookingMode(v)}
+              className={`rounded-xl border p-4 text-left ${bookingMode === v ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-500/20' : 'border-slate-300 hover:bg-slate-50'}`}>
+              <span className="block font-semibold">{t}</span><span className="mt-1 block text-sm text-slate-600">{d}</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-slate-500">Guided chat does not take deposits yet. Clients with a deposit service are sent to the form.</p>
+      </fieldset>
 
       <fieldset className="space-y-3 rounded-xl border border-slate-200 p-4">
         <legend className="px-1 text-sm font-semibold">Start times</legend>

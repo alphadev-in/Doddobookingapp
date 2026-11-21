@@ -24,6 +24,7 @@ const ICON = {
   help: 'M12 22a10 10 0 100-20 10 10 0 000 20zM9.1 9a3 3 0 115.8 1c0 2-3 3-3 3M12 17h.01',
   bell: 'M18 16v-5a6 6 0 10-12 0v5l-2 2h16zM10 21a2 2 0 004 0',
   shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  card: 'M3 6h18v12H3zM3 10h18M7 15h4',
 };
 
 const nav = [
@@ -89,8 +90,8 @@ const linkCls = (on: boolean) =>
     </div>
 
     <!-- Mobile bottom navigation: five items. Everything else lives under "More". -->
-    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label="Primary">
-      <ul class="mx-auto grid max-w-md grid-cols-5">
+    <nav class="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 rounded-2xl border border-slate-200/80 bg-white/95 shadow-xl shadow-slate-900/10 backdrop-blur-md md:hidden" aria-label="Primary">
+      <ul class="mx-auto grid max-w-md grid-cols-5 gap-1 p-1.5">
         {[
           { key: 'overview', href: '/dashboard', label: 'Home', icon: ICON.home },
           { key: 'calendar', href: '/dashboard/calendar', label: 'Calendar', icon: ICON.calendar },
@@ -99,8 +100,8 @@ const linkCls = (on: boolean) =>
         ].map((n) => (
           <li>
             <a href={n.href} aria-current={active === n.key ? 'page' : undefined}
-              class:list={['flex min-h-16 flex-col items-center justify-center gap-1 text-[10px] font-semibold', active === n.key ? 'text-brand-600' : 'text-slate-500']}>
-              <span class:list={['flex h-8 w-14 items-center justify-center rounded-full transition', active === n.key ? 'bg-brand-50' : '']}>
+              class:list={['flex min-h-14 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold transition-colors', active === n.key ? 'text-brand-700' : 'text-slate-500 hover:text-slate-800']}>
+              <span class:list={['flex h-8 w-16 items-center justify-center rounded-full transition-colors', active === n.key ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30' : '']}>
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d={n.icon} /></svg>
               </span>
               {n.label}
@@ -109,8 +110,8 @@ const linkCls = (on: boolean) =>
         ))}
         <li>
           <button type="button" data-more-open aria-haspopup="dialog" aria-controls="more-sheet"
-            class="flex min-h-16 w-full flex-col items-center justify-center gap-1 text-[10px] font-semibold text-slate-500">
-            <span class="flex h-8 w-14 items-center justify-center rounded-full"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg></span>
+            class="flex min-h-14 w-full flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold text-slate-500 hover:text-slate-800">
+            <span class="flex h-8 w-16 items-center justify-center rounded-full"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" /></svg></span>
             More
           </button>
         </li>
@@ -127,6 +128,7 @@ const linkCls = (on: boolean) =>
             { href: '/dashboard/team', label: 'Team', icon: ICON.team, key: 'team' },
             { href: '/notifications', label: 'Notifications', icon: ICON.bell, key: 'notifications', badge: unread },
             { href: '/dashboard/settings', label: 'Settings', icon: ICON.settings, key: 'settings' },
+            { href: '/dashboard/billing', label: 'Subscription', icon: ICON.card, key: 'billing' },
             { href: '/dashboard/help', label: 'Help & FAQ', icon: ICON.help, key: 'help' },
             ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: ICON.shield, key: 'admin' }] : []),
           ].map((n: any) => (

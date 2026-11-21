@@ -9,6 +9,7 @@ import {
 } from './repo';
 import { verifyDeposit, refundDeposit } from './payments';
 import { notifyClient } from './notifications';
+import { sendPush } from './push';
 import { token, uid } from './ids';
 
 const MIN = 60_000;
@@ -240,8 +241,12 @@ async function notifyParties(business: Business, appt: Appointment, event: 'book
     cancelled_by_client: { biz: `${who} cancelled`, cust: `You cancelled at ${business.name}`, body: `${appt.title} · ${when}` },
   }[event];
   await addNotification({ businessId: business.id, title: copy.biz, body: copy.body, href: '/dashboard/calendar' });
+  await sendPush({ businessId: business.id }, { title: copy.biz, body: copy.body, url: '/dashboard/calendar' }).catch(() => {});
   if (appt.clientEmail) {
-    await addNotification({ customerEmail: appt.clientEmail.toLowerCase(), title: copy.cust, body: copy.body, href: `/booking/${appt.id}?t=${appt.manageToken}` });
+    const customerEmail = appt.clientEmail.toLowerCase();
+    const url = `/booking/${appt.id}?t=${appt.manageToken}`;
+    await addNotification({ customerEmail, title: copy.cust, body: copy.body, href: url });
+    await sendPush({ customerEmail }, { title: copy.cust, body: copy.body, url }).catch(() => {});
   }
 }
 

@@ -14,6 +14,7 @@ const snap = <T>(d: FirebaseFirestore.QueryDocumentSnapshot | FirebaseFirestore.
 const withDefaults = (b: Business): Business => ({
   ...b,
   about: b.about ?? '',
+  bookingMode: b.bookingMode ?? 'form',
   website: b.website ?? '',
   addressLine1: b.addressLine1 ?? '',
   addressLine2: b.addressLine2 ?? '',

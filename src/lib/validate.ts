@@ -65,6 +65,10 @@ export function validateBusinessSettings(b: any) {
     if (v.length > 350_000) throw new BookingError('VALIDATION', 'Picture is too large after resizing. Try a simpler image.');
     data[key] = v;
   }
+  if (b.bookingMode !== undefined) {
+    if (!['form', 'chat'].includes(b.bookingMode)) throw new BookingError('VALIDATION', 'Booking style must be form or chat');
+    data.bookingMode = b.bookingMode;
+  }
   if (b.paymentsEnabled !== undefined) data.paymentsEnabled = !!b.paymentsEnabled;
   if (b.slotIntervalMin !== undefined) {
     const v = Number(b.slotIntervalMin);

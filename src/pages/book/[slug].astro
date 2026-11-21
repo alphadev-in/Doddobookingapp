@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import BookingFlow from '../../components/islands/BookingFlow';
+import ChatBooking from '../../components/islands/ChatBooking';
 import { getBusinessBySlug, listServices, listStaff } from '../../lib/repo';
 import { dateKeyInTz } from '../../lib/time';
 export const prerender = false;
@@ -59,7 +60,9 @@ const publicStaff = staff.map((s) => ({ id: s.id, name: s.name, role: s.role, co
           <p class="mt-4 text-xs text-slate-500">Times shown in {business.timezone}</p>
         </div>
       </section>
-      <BookingFlow business={publicBusiness} services={publicServices} staff={publicStaff} todayKey={todayKey} client:load />
+      {business.bookingMode === 'chat' && Astro.url.searchParams.get('mode') !== 'form'
+        ? <ChatBooking business={publicBusiness} services={publicServices} staff={publicStaff} todayKey={todayKey} client:load />
+        : <BookingFlow business={publicBusiness} services={publicServices} staff={publicStaff} todayKey={todayKey} client:load />}
     </div>
   </main>
 </BaseLayout>
