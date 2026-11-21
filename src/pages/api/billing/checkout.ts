@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { BookingError } from '../../../lib/booking';
-import { json, withErrors } from '../../../lib/http';
+import { getBaseOrigin, json, withErrors } from '../../../lib/http';
 import { requireBusiness, sessionUser } from '../../../lib/session';
 import { stripe, SUBSCRIPTION_PRICE_ID } from '../../../lib/stripe';
 
@@ -15,7 +15,7 @@ export const POST: APIRoute = withErrors(async ({ request, url }) => {
   if (business.subscription.stripeSubscriptionId && (business.subscription.status === 'active' || business.subscription.status === 'trialing')) {
     throw new BookingError('VALIDATION', 'Your subscription is already active');
   }
-  const origin = url.origin;
+  const origin = getBaseOrigin(request, url);
   const session = await stripe<{ url: string }>('POST', 'checkout/sessions', {
     mode: 'subscription',
     'line_items[0][price]': price,

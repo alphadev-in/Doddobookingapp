@@ -33,3 +33,41 @@ export function getCookie(request: Request, name: string): string | null {
   }
   return null;
 }
+
+/**
+ * Resolve the public base origin for redirects, webhooks and Stripe sessions.
+ * In production behind proxies / Cloud Run (where Node sees localhost:8080),
+ * this inspects Referer and proxy headers, falling back to PUBLIC_SITE_URL or request URL.
+ */
+export function getBaseOrigin(request: Request, fallbackUrl?: URL): string {
+  const referer = request.headers.get('referer');
+  if (referer) {
+    try {
+      const u = new URL(referer);
+      if (u.protocol === 'http:' || u.protocol === 'https:') {
+        return u.origin;
+      }
+    } catch {}
+  }
+
+  const xfHost = request.headers.get('x-forwarded-host');
+  const xfProto = request.headers.get('x-forwarded-proto') || 'https';
+  if (xfHost) {
+    const h = xfHost.split(',')[0].trim();
+    if (h && !h.startsWith('localhost') && !h.startsWith('127.0.0.1')) {
+      return `${xfProto}://${h}`;
+    }
+  }
+
+  const host = request.headers.get('host');
+  if (host && !host.startsWith('localhost') && !host.startsWith('127.0.0.1') && !host.startsWith('0.0.0.0')) {
+    const proto = request.headers.get('x-forwarded-proto') || 'https';
+    return `${proto}://${host}`;
+  }
+
+  if (process.env.PUBLIC_SITE_URL) {
+    return process.env.PUBLIC_SITE_URL.replace(/\/+$/, '');
+  }
+
+  return fallbackUrl ? fallbackUrl.origin : 'https://doddo.co.uk';
+}
