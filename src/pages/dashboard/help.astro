@@ -5,7 +5,7 @@ export const prerender = false;
 
 const ctx = await loadOwnerBusiness(Astro);
 if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
-const { business, unread, isAdmin } = ctx;
+const { business, unread, isAdmin, isSubscribed } = ctx;
 
 const sections = [
   { title: 'Getting started', items: [
@@ -46,7 +46,7 @@ const sections = [
   ]},
 ];
 ---
-<DashboardLayout title="Help & FAQ" active="help" businessName={business.name} bookingSlug={business.slug} unread={unread} isAdmin={isAdmin}>
+<DashboardLayout title="Help & FAQ" active="help" businessName={business.name} bookingSlug={business.slug} unread={unread} isAdmin={isAdmin} showSubscribeModal={!isSubscribed}>
   <div class="space-y-10">
     <section class="rounded-3xl bg-gradient-to-br from-brand-600 to-violet-700 p-6 text-white shadow-xl shadow-brand-600/20 md:p-8">
       <h2 class="text-2xl font-bold">How can we help?</h2>

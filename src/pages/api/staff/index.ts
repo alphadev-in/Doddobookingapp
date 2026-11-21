@@ -12,7 +12,7 @@ export const GET: APIRoute = withErrors(async ({ request }) => {
 });
 
 export const POST: APIRoute = withErrors(async ({ request }) => {
-  const business = await requireBusiness(request);
+  const business = await requireBusiness(request, { allowUnpaid: true });
   const data = validateStaff(await readJson(request));
   return json(await saveStaff({ ...data, businessId: business.id }), 201);
 });

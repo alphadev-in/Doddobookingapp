@@ -11,7 +11,7 @@ export const prerender = false;
 
 const ctx = await loadOwnerBusiness(Astro);
 if ('redirect' in ctx) return Astro.redirect(ctx.redirect);
-const { business, unread, isAdmin } = ctx;
+const { business, unread, isAdmin, isSubscribed } = ctx;
 const tz = business.timezone;
 const nowMs = Date.now();
 const todayKey = dateKeyInTz(nowMs, tz);
@@ -29,7 +29,7 @@ const upcoming = bookings
 const clientCount = (await listClients(business.id)).length;
 const bookingPath = `/book/${business.slug}`;
 ---
-<DashboardLayout title="Overview" active="overview" businessName={business.name} bookingSlug={business.slug} unread={unread} isAdmin={isAdmin}>
+<DashboardLayout title="Overview" active="overview" businessName={business.name} bookingSlug={business.slug} unread={unread} isAdmin={isAdmin} showSubscribeModal={!isSubscribed}>
   <div class="space-y-8">
     <section class="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Quick stats">
       <StatCard label="Today's bookings" value={today.length} hint={`${clientCount} clients in CRM`} />

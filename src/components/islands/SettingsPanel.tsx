@@ -52,9 +52,39 @@ export default function SettingsPanel({ business, paymentsMode, origin }: Props)
         {tab === 'Subscription' && (
           <section className="space-y-4">
             <h2 className="text-lg font-semibold">Subscription</h2>
-            <p className="text-sm text-slate-600">Doddo is £5 a month with no contract. Status: <strong>{b.subscription?.status ?? 'trialing'}</strong>.</p>
-            <a href="/dashboard/billing" className="inline-flex min-h-12 items-center rounded-xl bg-brand-600 px-5 font-semibold text-white">Manage subscription</a>
-            <p className="text-xs text-slate-500">Update your card, view invoices or cancel from Stripe's secure page.</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div>
+                <p className="font-semibold text-slate-900">Doddo Standard Plan</p>
+                <p className="mt-0.5 text-sm text-slate-600">£5 / month · Cancel anytime</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Status:{' '}
+                  <span className={`inline-block font-semibold uppercase ${b.subscription?.status === 'active' || b.subscription?.status === 'trialing' ? 'text-emerald-700' : 'text-amber-700'}`}>
+                    {b.subscription?.status ?? 'incomplete'}
+                  </span>
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const endpoint = (b.subscription?.status === 'active' || b.subscription?.status === 'trialing') && b.subscription?.stripeCustomerId
+                      ? '/api/billing/portal'
+                      : '/api/billing/checkout';
+                    const { url } = await api<{ url: string }>(endpoint, { body: {} });
+                    if (url) window.location.href = url;
+                  } catch (e: any) {
+                    setStatus({ kind: 'err', msg: e.message });
+                    setBusy(false);
+                  }
+                }}
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-5 font-semibold text-white shadow-md shadow-brand-600/20 hover:bg-brand-700 disabled:opacity-60"
+              >
+                {b.subscription?.status === 'active' || b.subscription?.status === 'trialing' ? 'Manage Billing on Stripe' : 'Complete Subscription — £5/mo'}
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">Payments and card details are securely handled by Stripe. You can enter promotional coupons or change payment cards on Stripe.</p>
           </section>
         )}
         {tab === 'Booking' && (

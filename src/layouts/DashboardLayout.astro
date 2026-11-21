@@ -1,6 +1,7 @@
 ---
 import BaseLayout from './BaseLayout.astro';
 import LogoutButton from '../components/islands/LogoutButton';
+import SubscriptionModal from '../components/islands/SubscriptionModal';
 
 interface Props {
   title: string;
@@ -10,8 +11,9 @@ interface Props {
   unread?: number;
   isAdmin?: boolean;
   wide?: boolean;
+  showSubscribeModal?: boolean;
 }
-const { title, active, businessName, bookingSlug, unread = 0, isAdmin = false, wide = false } = Astro.props;
+const { title, active, businessName, bookingSlug, unread = 0, isAdmin = false, wide = false, showSubscribeModal = false } = Astro.props;
 
 // Icon paths (24x24 stroke icons).
 const ICON = {
@@ -142,6 +144,7 @@ const linkCls = (on: boolean) =>
         </ul>
       </div>
     </div>
+    <SubscriptionModal open={showSubscribeModal} businessName={businessName} client:load />
     <script is:inline>
       // Refresh dashboard data when you come back to the tab (e.g. after a customer books on their phone).
       // Skipped while a dialog is open or a field is being typed in, so nothing you are writing is lost.
